@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useUser } from "@clerk/nextjs";
 import axios from "axios";
 import { toast } from "sonner";
@@ -40,6 +41,7 @@ const STEPS = [
 
 const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+const LocationPicker = dynamic(() => import("@/components/dashboard/LocationPicker"), { ssr: false });
 
 export default function ListingForm({ initialData, mode }: ListingFormProps) {
   const router = useRouter();
@@ -648,6 +650,23 @@ export default function ListingForm({ initialData, mode }: ListingFormProps) {
 
               <Button type="button" variant="outline" className="w-full gap-2" onClick={useCurrentLocation} disabled={geocoding}> <LocateFixed className="h-4 w-4" /> Use my current property location </Button>
 
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-sm font-semibold">Confirm the exact property pin</label>
+                  <span className="text-xs text-muted-foreground">Click or drag to adjust</span>
+                </div>
+                <LocationPicker
+                  coordinates={[
+                    watchAll.location?.coordinates?.[0] || 77.2090,
+                    watchAll.location?.coordinates?.[1] || 28.6139,
+                  ]}
+                  onChange={([longitude, latitude]) => {
+                    setValue("location.coordinates.0", longitude, { shouldValidate: true });
+                    setValue("location.coordinates.1", latitude, { shouldValidate: true });
+                    setLocationVerified(true);
+                  }}
+                />
+              </div>
               {/* Selected Location Summary */}
               <div className={`rounded-lg border p-4 text-sm ${locationVerified ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-900" : "border-amber-500/20 bg-amber-500/5 text-amber-900"}`}>
                 <div className="flex items-center gap-2 font-semibold">
