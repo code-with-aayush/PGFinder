@@ -36,6 +36,7 @@ export default function LocationPicker({ coordinates, onChange }: LocationPicker
         <MapClickHandler onChange={onChange} />
         <Marker
           position={center}
+          icon={propertyPin}
           draggable
           eventHandlers={{
             dragend: (event) => {
