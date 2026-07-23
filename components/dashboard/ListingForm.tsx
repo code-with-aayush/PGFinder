@@ -20,6 +20,7 @@ import {
   X,
   MapPin,
   Search,
+  LocateFixed,
 } from "lucide-react";
 import { createListingSchema, type CreateListingInput } from "@/lib/validations";
 import { formatPrice } from "@/lib/utils";
@@ -49,6 +50,7 @@ export default function ListingForm({ initialData, mode }: ListingFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [locationSearch, setLocationSearch] = useState("");
   const [geocoding, setGeocoding] = useState(false);
+  const [locationVerified, setLocationVerified] = useState(!!initialData?.location);
 
   async function searchLocationQuery(query: string) {
     if (!query.trim()) {
@@ -66,6 +68,7 @@ export default function ListingForm({ initialData, mode }: ListingFormProps) {
         const lat = parseFloat(data[0].lat);
         setValue("location.coordinates.0", lng);
         setValue("location.coordinates.1", lat);
+        setLocationVerified(true);
         toast.success(`Pin set: ${data[0].display_name.slice(0, 50)}...`);
       } else {
         toast.error("Location not found. Try adding a city name.");
@@ -77,6 +80,21 @@ export default function ListingForm({ initialData, mode }: ListingFormProps) {
     }
   }
 
+  function useCurrentLocation() {
+    if (!navigator.geolocation) { toast.error("Location is not supported by this browser"); return; }
+    setGeocoding(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setValue("location.coordinates.0", coords.longitude);
+        setValue("location.coordinates.1", coords.latitude);
+        setLocationVerified(true);
+        toast.success("Your current location has been pinned. Please confirm it matches the property.");
+        setGeocoding(false);
+      },
+      () => { toast.error("Unable to access location. Search the property address instead."); setGeocoding(false); },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  }
   const {
     register,
     handleSubmit,
@@ -614,7 +632,7 @@ export default function ListingForm({ initialData, mode }: ListingFormProps) {
                   size="sm"
                   className="gap-2 bg-background"
                   onClick={() => {
-                    const query = `${watchAll.address?.street || ""} ${watchAll.address?.city || ""}`.trim();
+                    const query = `${watchAll.address?.street || ""}, ${watchAll.address?.city || ""}, ${watchAll.address?.state || ""}, ${watchAll.address?.pincode || ""}`.trim();
                     if (!query) {
                       toast.error("Please fill in city and street in Step 1 first");
                       return;
@@ -628,11 +646,13 @@ export default function ListingForm({ initialData, mode }: ListingFormProps) {
                 </Button>
               </div>
 
+              <Button type="button" variant="outline" className="w-full gap-2" onClick={useCurrentLocation} disabled={geocoding}> <LocateFixed className="h-4 w-4" /> Use my current property location </Button>
+
               {/* Selected Location Summary */}
-              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-emerald-900">
+              <div className={`rounded-lg border p-4 text-sm ${locationVerified ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-900" : "border-amber-500/20 bg-amber-500/5 text-amber-900"}`}>
                 <div className="flex items-center gap-2 font-semibold">
                   <Check className="h-4 w-4 text-emerald-600" />
-                  Map Location Confirmed
+{locationVerified ? "Map location confirmed" : "Location still needs confirmation"}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Latitude: <span className="font-mono font-medium text-foreground">{watchAll.location?.coordinates?.[1] || 28.6139}</span>, Longitude: <span className="font-mono font-medium text-foreground">{watchAll.location?.coordinates?.[0] || 77.2090}</span>

@@ -1,137 +1,49 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Saved from "@/models/Saved";
 import Listing from "@/models/Listing";
 import User from "@/models/User";
-import { mockDb } from "@/lib/mockDb";
+
+async function requireStudent(userId: string) {
+  const clerkUser = await currentUser();
+  if (!clerkUser || clerkUser.publicMetadata?.role !== "student") return false;
+  await User.findOneAndUpdate(
+    { clerkId: userId },
+    { $set: { name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || "Student", email: clerkUser.primaryEmailAddress?.emailAddress || "", role: "student" } },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+  return true;
+}
 
 export async function GET() {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    try {
-      if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes("placeholder")) {
-        throw new Error("No MongoDB URI");
-      }
-      await connectToDatabase();
-
-      const user = await User.findOne({ clerkId: userId });
-      if (!user || user.role !== "student") {
-        return NextResponse.json(
-          { error: "Only students can access saved listings" },
-          { status: 403 }
-        );
-      }
-
-      const savedItems = await Saved.find({ studentId: userId })
-        .sort({ savedAt: -1 })
-        .lean();
-
-      const listingIds = savedItems.map((item) => item.listingId);
-      const listings = await Listing.find({ _id: { $in: listingIds } }).lean();
-
-      const savedListings = savedItems.map((item) => ({
-        ...item,
-        listing: listings.find(
-          (l) => l._id.toString() === item.listingId.toString()
-        ),
-      }));
-
-      return NextResponse.json({ saved: savedListings });
-    } catch {
-      // Mock fallback
-      const savedItems = mockDb.getSaved(userId);
-      const savedListings = savedItems.map((item) => ({
-        ...item,
-        listing: mockDb.getListingById(item.listingId),
-      }));
-      return NextResponse.json({ saved: savedListings });
-    }
+    await connectToDatabase();
+    if (!(await requireStudent(userId))) return NextResponse.json({ error: "Only students can access saved listings" }, { status: 403 });
+    const savedItems = await Saved.find({ studentId: userId }).sort({ savedAt: -1 }).lean();
+    const listings = await Listing.find({ _id: { $in: savedItems.map((item) => item.listingId) } }).lean();
+    return NextResponse.json({ saved: savedItems.map((item) => ({ ...item, listing: listings.find((listing) => listing._id.toString() === item.listingId.toString()) })) });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to fetch saved listings";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Unable to load saved listings", error);
+    return NextResponse.json({ error: "Unable to load saved listings. Please try again." }, { status: 503 });
   }
 }
 
 export async function POST(request: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const { listingId } = body;
-
-    if (!listingId) {
-      return NextResponse.json(
-        { error: "listingId is required" },
-        { status: 400 }
-      );
-    }
-
-    try {
-      if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes("placeholder")) {
-        throw new Error("No MongoDB URI");
-      }
-      await connectToDatabase();
-
-      const user = await User.findOne({ clerkId: userId });
-      if (!user || user.role !== "student") {
-        return NextResponse.json(
-          { error: "Only students can save listings" },
-          { status: 403 }
-        );
-      }
-
-      const listing = await Listing.findById(listingId);
-      if (!listing) {
-        return NextResponse.json(
-          { error: "Listing not found" },
-          { status: 404 }
-        );
-      }
-
-      try {
-        const saved = await Saved.create({
-          studentId: userId,
-          listingId,
-        });
-
-        return NextResponse.json({ saved }, { status: 201 });
-      } catch (err) {
-        if (
-          err instanceof Error &&
-          "code" in err &&
-          (err as { code: number }).code === 11000
-        ) {
-          return NextResponse.json(
-            { error: "Listing already saved" },
-            { status: 409 }
-          );
-        }
-        throw err;
-      }
-    } catch {
-      // Mock fallback
-      try {
-        const saved = mockDb.saveListing(userId, listingId);
-        return NextResponse.json({ saved }, { status: 201 });
-      } catch {
-        return NextResponse.json(
-          { error: "Listing already saved" },
-          { status: 409 }
-        );
-      }
-    }
+    const { listingId } = await request.json();
+    if (!listingId) return NextResponse.json({ error: "listingId is required" }, { status: 400 });
+    await connectToDatabase();
+    if (!(await requireStudent(userId))) return NextResponse.json({ error: "Only students can save listings" }, { status: 403 });
+    if (!(await Listing.exists({ _id: listingId, isActive: true }))) return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+    const saved = await Saved.findOneAndUpdate({ studentId: userId, listingId }, { $setOnInsert: { studentId: userId, listingId, savedAt: new Date() } }, { upsert: true, new: true });
+    return NextResponse.json({ saved }, { status: 201 });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to save listing";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Unable to save listing", error);
+    return NextResponse.json({ error: "Unable to save listing. Please try again." }, { status: 503 });
   }
 }
