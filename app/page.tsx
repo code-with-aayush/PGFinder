@@ -23,11 +23,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useUserRole } from "@/lib/useUserRole";
-import { useState } from "react";
+import axios from "axios";
+import { ListingCard } from "@/components/listings/ListingCard";
+import { useState, useEffect } from "react";
 
 export default function HomePage() {
   const { isOwner, isLoggedIn } = useUserRole();
   const [cityInput, setCityInput] = useState("");
+  const [featuredListings, setFeaturedListings] = useState<any[]>([]);
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
+
+  useEffect(() => {
+    async function loadFeatured() {
+      try {
+        const res = await axios.get("/api/listings?limit=3");
+        setFeaturedListings(res.data.listings || []);
+      } catch {
+        setFeaturedListings([]);
+      } finally {
+        setLoadingFeatured(false);
+      }
+    }
+    loadFeatured();
+  }, []);
 
   // ==================== OWNER MODE HOME PAGE ====================
   if (isOwner) {
@@ -396,6 +414,47 @@ export default function HomePage() {
               </Card>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Featured Listings Section */}
+      <section className="py-20">
+        <div className="container">
+          <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <Badge variant="outline" className="mb-2 border-primary/30 text-primary">
+                Popular PGs
+              </Badge>
+              <h2 className="text-3xl font-bold">Featured PG Accommodations</h2>
+              <p className="text-muted-foreground">
+                Top rated, verified student PGs near major colleges and transit hubs
+              </p>
+            </div>
+            <Link href="/listings">
+              <Button variant="ghost" className="gap-2">
+                Explore All PGs
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+
+          {loadingFeatured ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="skeleton h-80 rounded-lg" />
+              ))}
+            </div>
+          ) : featuredListings.length > 0 ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredListings.map((listing) => (
+                <ListingCard key={listing._id} listing={listing} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
+              No featured listings available at the moment.
+            </div>
+          )}
         </div>
       </section>
 

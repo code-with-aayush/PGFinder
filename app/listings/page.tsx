@@ -80,9 +80,9 @@ function ListingsContent() {
         <div>
           <h1 className="text-3xl font-bold">Find PG Accommodations</h1>
           <p className="text-muted-foreground">
-            {pagination
-              ? `${pagination.total} PGs found`
-              : "Searching..."}
+            {loading
+              ? "Searching..."
+              : `${pagination?.total ?? listings.length} PGs found`}
           </p>
         </div>
         <div className="flex items-center gap-2">
