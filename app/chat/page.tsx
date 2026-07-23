@@ -95,19 +95,19 @@ function ChatContent() {
     }
   }, [selectedConv?._id]);
 
-  // Live Chat Auto Polling (every 3 seconds)
+  // Zero-flicker background polling (every 5 seconds, only when tab is visible)
   useEffect(() => {
     if (!selectedConv) return;
-    const interval = setInterval(() => {
+
+    const poll = () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
       fetchMessagesSilent(selectedConv._id);
       fetchConversationsSilent();
-    }, 3000);
+    };
+
+    const interval = setInterval(poll, 5000);
     return () => clearInterval(interval);
   }, [selectedConv?._id]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   async function fetchConversations() {
     setLoadingConvs(true);
@@ -131,7 +131,11 @@ function ChatContent() {
   async function fetchConversationsSilent() {
     try {
       const res = await axios.get("/api/chat/conversations");
-      setConversations(res.data.conversations || []);
+      const newList = res.data.conversations || [];
+      setConversations((prev) => {
+        if (JSON.stringify(prev) === JSON.stringify(newList)) return prev;
+        return newList;
+      });
     } catch {
       /* ignore background poll error */
     }
@@ -141,7 +145,9 @@ function ChatContent() {
     setLoadingMessages(true);
     try {
       const res = await axios.get(`/api/chat/conversations/${convId}/messages`);
-      setMessages(res.data.messages || []);
+      const msgs = res.data.messages || [];
+      setMessages(msgs);
+      setTimeout(scrollToBottom, 50);
     } catch {
       setMessages([]);
     } finally {
@@ -152,7 +158,17 @@ function ChatContent() {
   async function fetchMessagesSilent(convId: string) {
     try {
       const res = await axios.get(`/api/chat/conversations/${convId}/messages`);
-      setMessages(res.data.messages || []);
+      const newMsgs: MessageItem[] = res.data.messages || [];
+      setMessages((prev) => {
+        if (
+          prev.length === newMsgs.length &&
+          prev[prev.length - 1]?._id === newMsgs[newMsgs.length - 1]?._id
+        ) {
+          return prev; // Same messages -> zero state change -> zero re-renders/scrolls!
+        }
+        setTimeout(scrollToBottom, 50);
+        return newMsgs;
+      });
     } catch {
       /* ignore background poll error */
     }
@@ -176,6 +192,7 @@ function ChatContent() {
     };
 
     setMessages((prev) => [...prev, tempMsg]);
+    setTimeout(scrollToBottom, 50);
     setSending(true);
 
     try {

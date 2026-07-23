@@ -102,16 +102,23 @@ export async function GET(request: NextRequest) {
       Listing.countDocuments(query),
     ]);
 
-    return NextResponse.json({
-      listings,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasMore: page * limit < total,
+    return NextResponse.json(
+      {
+        listings,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasMore: page * limit < total,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "s-maxage=10, stale-while-revalidate=59",
+        },
+      }
+    );
   } catch {
     // DB offline or placeholder -> fallback to mockDb
     let mockListings = mockDb.getListings();
