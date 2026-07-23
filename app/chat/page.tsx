@@ -57,7 +57,7 @@ function ChatContent() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const activeConvIdRef = useRef<string | null>(selectedConvId);
 
   // Derived selected conversation object from stable ID
@@ -68,7 +68,8 @@ function ChatContent() {
   }, [selectedConvId]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (container) container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   };
 
   // 1. Initial auth check & fetch conversations
@@ -356,7 +357,7 @@ function ChatContent() {
               </div>
 
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50 dark:bg-slate-950/50">
+              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50 dark:bg-slate-950/50">
                 {loadingMessages ? (
                   <div className="flex h-full items-center justify-center">
                     <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -397,7 +398,6 @@ function ChatContent() {
                     );
                   })
                 )}
-                <div ref={messagesEndRef} />
               </div>
 
               {/* Chat Input Bar */}

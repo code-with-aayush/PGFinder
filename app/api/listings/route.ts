@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Listing from "@/models/Listing";
@@ -48,8 +48,15 @@ export async function POST(request: NextRequest) {
   if (!validation.success) return NextResponse.json({ error: "Validation failed", details: validation.error.flatten() }, { status: 400 });
   try {
     await connectToDatabase();
-    const user = await User.findOne({ clerkId: userId }).lean();
-    if (!user || user.role !== "owner") return NextResponse.json({ error: "Only owners can create listings" }, { status: 403 });
+    const clerkUser = await currentUser();
+    if (!clerkUser || clerkUser.publicMetadata?.role !== "owner") {
+      return NextResponse.json({ error: "Only owners can create listings" }, { status: 403 });
+    }
+    await User.findOneAndUpdate(
+      { clerkId: userId },
+      { $set: { name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || "Owner", email: clerkUser.primaryEmailAddress?.emailAddress || "", role: "owner" } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
     const listing = await Listing.create({ ...validation.data, ownerId: userId, isActive: true, isVerified: false });
     return NextResponse.json({ listing }, { status: 201 });
   } catch (error) {
