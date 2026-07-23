@@ -619,6 +619,23 @@ export default function ListingForm({ initialData, mode }: ListingFormProps) {
               </div>
 
               {/* Exact map pin */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-sm font-semibold">Set the exact property pin</label>
+                  <span className="text-xs text-muted-foreground">Click or drag the marker</span>
+                </div>
+                <LocationPicker
+                  coordinates={[
+                    watchAll.location?.coordinates?.[0] || 77.2090,
+                    watchAll.location?.coordinates?.[1] || 28.6139,
+                  ]}
+                  onChange={([longitude, latitude]) => {
+                    setValue("location.coordinates.0", longitude, { shouldValidate: true });
+                    setValue("location.coordinates.1", latitude, { shouldValidate: true });
+                    setLocationVerified(true);
+                  }}
+                />
+              </div>
             </CardContent>
           </Card>
         )}
