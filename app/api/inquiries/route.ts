@@ -32,9 +32,7 @@ export async function GET(request: NextRequest) {
           .sort({ createdAt: -1 })
           .lean();
       } else if (targetRole === "owner") {
-        inquiries = await Inquiry.find({
-          $or: [{ ownerId: userId }, { ownerId: "seed_owner_001" }],
-        })
+        inquiries = await Inquiry.find({ ownerId: userId })
           .sort({ createdAt: -1 })
           .lean();
       } else {

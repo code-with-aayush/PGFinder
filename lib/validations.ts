@@ -51,6 +51,11 @@ export const createListingSchema = z.object({
     .array(z.string().url("Invalid photo URL"))
     .min(1, "At least 1 photo is required")
     .max(10, "Maximum 10 photos allowed"),
+  ownerPhone: z
+    .string()
+    .regex(/^\d{10}$/, "Phone number must be a 10-digit mobile number")
+    .optional()
+    .or(z.literal("")),
 });
 
 export const updateListingSchema = createListingSchema.partial();

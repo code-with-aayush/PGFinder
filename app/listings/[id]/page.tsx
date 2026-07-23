@@ -462,7 +462,7 @@ export default function ListingDetailPage() {
 
               {/* WhatsApp Button */}
               <a
-                href={getWhatsAppUrl("9876543210", listing.title)}
+                href={getWhatsAppUrl(listing.ownerPhone || "9876543210", listing.title)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex w-full items-center justify-center gap-2 rounded-md bg-[#25D366] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#20BD5A] transition-colors shadow-sm"

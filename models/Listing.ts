@@ -35,6 +35,7 @@ export interface IListing extends Document {
     curfewTime: string;
   };
   photos: string[];
+  ownerPhone?: string;
   isVerified: boolean;
   isActive: boolean;
   createdAt: Date;
@@ -98,6 +99,7 @@ const ListingSchema = new Schema<IListing>(
         message: "Maximum 10 photos allowed",
       },
     },
+    ownerPhone: { type: String, default: "" },
     isVerified: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
   },

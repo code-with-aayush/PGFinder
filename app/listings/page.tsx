@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
 import { ListingCard } from "@/components/listings/ListingCard";
@@ -38,6 +38,7 @@ interface Pagination {
 }
 
 function ListingsContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [listings, setListings] = useState<Listing[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
@@ -69,8 +70,7 @@ function ListingsContent() {
   function goToPage(page: number) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", page.toString());
-    window.history.pushState(null, "", `?${params.toString()}`);
-    window.dispatchEvent(new PopStateEvent("popstate"));
+    router.push(`?${params.toString()}`);
   }
 
   return (

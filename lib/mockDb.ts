@@ -37,6 +37,7 @@ export interface MockListing {
     curfewTime: string;
   };
   photos: string[];
+  ownerPhone?: string;
   isVerified: boolean;
   isActive: boolean;
   createdAt: string;
@@ -304,8 +305,9 @@ export const mockDb = {
     if (role === "student") {
       return inquiries.filter((i) => i.studentId === userId);
     }
-    const ownerInquiries = inquiries.filter((i) => i.ownerId === userId || i.ownerId === "seed_owner_001");
-    return ownerInquiries;
+    return inquiries.filter(
+      (i) => i.ownerId === userId || (!userId && i.ownerId === "seed_owner_001")
+    );
   },
   createInquiry: (inquiry: Omit<MockInquiry, "_id" | "createdAt">) => {
     const newInquiry: MockInquiry = {

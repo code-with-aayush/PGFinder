@@ -110,7 +110,12 @@ export async function PUT(
           { status: 404 }
         );
       }
-      // Note: skip owner check for easier client-side testing in demo mode
+      if (listing.ownerId !== userId) {
+        return NextResponse.json(
+          { error: "You can only edit your own listings" },
+          { status: 403 }
+        );
+      }
       const updatedListing = mockDb.updateListing(id, validation.data);
       return NextResponse.json({ listing: updatedListing });
     }
@@ -166,6 +171,13 @@ export async function DELETE(
       return NextResponse.json({ message: "Listing deleted successfully" });
     } catch {
       // Mock fallback
+      const listing = mockDb.getListingById(id);
+      if (listing && listing.ownerId !== userId) {
+        return NextResponse.json(
+          { error: "You can only delete your own listings" },
+          { status: 403 }
+        );
+      }
       mockDb.deleteListing(id);
       return NextResponse.json({ message: "Listing deleted successfully" });
     }

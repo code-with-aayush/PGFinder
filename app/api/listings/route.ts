@@ -19,6 +19,9 @@ export async function GET(request: NextRequest) {
   const verified = searchParams.get("verified");
   const type = searchParams.get("type");
   const ownerId = searchParams.get("ownerId");
+  const lat = searchParams.get("lat");
+  const lng = searchParams.get("lng");
+  const radius = searchParams.get("radius") || "5000";
   const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = Math.min(parseInt(searchParams.get("limit") || "12", 10), 50);
   const sort = searchParams.get("sort") || "newest";
@@ -35,6 +38,23 @@ export async function GET(request: NextRequest) {
     if (ownerId) {
       query.ownerId = ownerId;
       delete query.isActive;
+    }
+
+    if (lat && lng) {
+      const latitude = parseFloat(lat);
+      const longitude = parseFloat(lng);
+      const maxDistMeters = parseInt(radius, 10);
+      if (!isNaN(latitude) && !isNaN(longitude)) {
+        query.location = {
+          $nearSphere: {
+            $geometry: {
+              type: "Point",
+              coordinates: [longitude, latitude],
+            },
+            $maxDistance: maxDistMeters,
+          },
+        };
+      }
     }
 
     if (city) {

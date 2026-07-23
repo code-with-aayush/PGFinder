@@ -89,6 +89,7 @@ export default function ListingForm({ initialData, mode }: ListingFormProps) {
     defaultValues: {
       title: initialData?.title || "",
       description: initialData?.description || "",
+      ownerPhone: (initialData as any)?.ownerPhone || "",
       price: initialData?.price || 5000,
       type: initialData?.type || "PG",
       gender: initialData?.gender || "any",
@@ -288,6 +289,17 @@ export default function ListingForm({ initialData, mode }: ListingFormProps) {
                 />
                 {errors.description && (
                   <p className="mt-1 text-xs text-destructive">{errors.description.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium">Owner WhatsApp / Contact Number</label>
+                <Input
+                  {...register("ownerPhone")}
+                  placeholder="e.g., 9876543210 (10-digit mobile number)"
+                />
+                {errors.ownerPhone && (
+                  <p className="mt-1 text-xs text-destructive">{errors.ownerPhone.message}</p>
                 )}
               </div>
 
