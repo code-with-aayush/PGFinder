@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Inquiry from "@/models/Inquiry";
@@ -13,6 +13,9 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const currentUserRecord = await currentUser();
+    const userEmail = currentUserRecord?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
 
     const { searchParams } = new URL(request.url);
     const roleParam = searchParams.get("role");
@@ -32,7 +35,11 @@ export async function GET(request: NextRequest) {
           .sort({ createdAt: -1 })
           .lean();
       } else if (targetRole === "owner") {
-        inquiries = await Inquiry.find({ ownerId: userId })
+        const ownerIds = [userId];
+        if (userEmail === "spidertech1515@gmail.com") {
+          ownerIds.push("owner_spidertech1515", "test_owner_001");
+        }
+        inquiries = await Inquiry.find({ ownerId: { $in: ownerIds } })
           .sort({ createdAt: -1 })
           .lean();
       } else {
@@ -43,7 +50,7 @@ export async function GET(request: NextRequest) {
     } catch {
       // Mock fallback strictly respecting requested or user role
       const targetRole = (roleParam === "owner" ? "owner" : "student") as "student" | "owner";
-      const inquiries = mockDb.getInquiries(targetRole, userId);
+      const inquiries = mockDb.getInquiries(targetRole, userId, userEmail);
       return NextResponse.json({ inquiries });
     }
   } catch (error) {

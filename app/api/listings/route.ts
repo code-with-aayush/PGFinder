@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Listing from "@/models/Listing";
@@ -26,6 +26,9 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(parseInt(searchParams.get("limit") || "12", 10), 50);
   const sort = searchParams.get("sort") || "newest";
 
+  const userRecord = await currentUser();
+  const userEmail = userRecord?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
+
   try {
     if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes("placeholder")) {
       throw new Error("No MongoDB URI");
@@ -36,11 +39,15 @@ export async function GET(request: NextRequest) {
     const query: Record<string, any> = { isActive: true };
 
     if (ownerId) {
-      query.$or = [
-        { ownerId: ownerId },
-        { ownerId: "owner_spidertech1515" },
-        { ownerId: "test_owner_001" },
-      ];
+      if (userEmail === "spidertech1515@gmail.com") {
+        query.$or = [
+          { ownerId: ownerId },
+          { ownerId: "owner_spidertech1515" },
+          { ownerId: "test_owner_001" },
+        ];
+      } else {
+        query.ownerId = ownerId;
+      }
       delete query.isActive;
     }
 
@@ -128,12 +135,16 @@ export async function GET(request: NextRequest) {
     let mockListings = mockDb.getListings();
 
     if (ownerId) {
-      mockListings = mockListings.filter(
-        (l) =>
-          l.ownerId === ownerId ||
-          l.ownerId === "owner_spidertech1515" ||
-          l.ownerId === "test_owner_001"
-      );
+      if (userEmail === "spidertech1515@gmail.com") {
+        mockListings = mockListings.filter(
+          (l) =>
+            l.ownerId === ownerId ||
+            l.ownerId === "owner_spidertech1515" ||
+            l.ownerId === "test_owner_001"
+        );
+      } else {
+        mockListings = mockListings.filter((l) => l.ownerId === ownerId);
+      }
     } else {
       mockListings = mockListings.filter((l) => l.isActive);
     }

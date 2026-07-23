@@ -568,14 +568,16 @@ export const mockDb = {
     );
     return true;
   },
-  getInquiries: (role: "student" | "owner", userId: string) => {
+  getInquiries: (role: "student" | "owner", userId: string, userEmail?: string) => {
     const inquiries = global.mockInquiries || [];
     if (role === "student") {
       return inquiries.filter((i) => i.studentId === userId);
     }
-    // Any owner sees their listings or all test owner listings
     return inquiries.filter(
-      (i) => i.ownerId === userId || i.ownerId === TEST_OWNER_ID || !userId
+      (i) =>
+        i.ownerId === userId ||
+        (userEmail === "spidertech1515@gmail.com" &&
+          (i.ownerId === TEST_OWNER_ID || i.ownerId === "test_owner_001"))
     );
   },
   createInquiry: (inquiry: Omit<MockInquiry, "_id" | "createdAt">) => {
@@ -593,9 +595,13 @@ export const mockDb = {
     );
     return true;
   },
-  getConversations: (userId: string) => {
+  getConversations: (userId: string, userEmail?: string) => {
     return (global.mockConversations || []).filter(
-      (c) => c.studentId === userId || c.ownerId === userId || c.ownerId === TEST_OWNER_ID || !userId
+      (c) =>
+        c.studentId === userId ||
+        c.ownerId === userId ||
+        (userEmail === "spidertech1515@gmail.com" &&
+          (c.ownerId === TEST_OWNER_ID || c.ownerId === "test_owner_001"))
     );
   },
   getOrCreateConversation: (params: {
