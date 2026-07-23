@@ -158,3 +158,23 @@ main {
     -webkit-overflow-scrolling: touch;
   }
 }
+.pgfinder-map-pin {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border: 3px solid white;
+  border-radius: 50% 50% 50% 0;
+  background: hsl(var(--primary));
+  box-shadow: 0 3px 10px rgba(45, 35, 120, 0.35);
+  transform: rotate(-45deg);
+}
+
+.pgfinder-map-pin span {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: white;
+}

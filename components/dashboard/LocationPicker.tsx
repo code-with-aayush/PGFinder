@@ -1,8 +1,14 @@
 "use client";
 
 import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
-import type { LatLngExpression } from "leaflet";
+import { divIcon, type LatLngExpression } from "leaflet";
 
+const propertyPin = divIcon({
+  className: "",
+  html: `<div class="pgfinder-map-pin"><span></span></div>`,
+  iconSize: [36, 44],
+  iconAnchor: [18, 42],
+});
 interface LocationPickerProps {
   coordinates: [number, number];
   onChange: (coordinates: [number, number]) => void;
