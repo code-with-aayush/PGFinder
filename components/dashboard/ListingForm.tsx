@@ -618,6 +618,16 @@ export default function ListingForm({ initialData, mode }: ListingFormProps) {
                 </div>
               </div>
 
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2"
+                onClick={useCurrentLocation}
+                disabled={geocoding}
+              >
+                <LocateFixed className="h-4 w-4 text-primary" />
+                Use my current property location
+              </Button>
               {/* Exact map pin */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
