@@ -97,7 +97,8 @@ const PHOTOS = [
   "https://images.unsplash.com/photo-1540518614846-7eded433c457?w=800&h=600&fit=crop",
 ];
 
-const TEST_OWNER_ID = "test_owner_001";
+const TEST_OWNER_ID = "owner_spidertech1515";
+const TEST_OWNER_EMAIL = "spidertech1515@gmail.com";
 const TEST_OWNER_PHONE = "9876543210";
 
 // Initialize mock data globally to persist changes in dev reload

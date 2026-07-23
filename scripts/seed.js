@@ -135,8 +135,8 @@ const Saved = mongoose.models.Saved || mongoose.model("Saved", SavedSchema);
 const Conversation = mongoose.models.Conversation || mongoose.model("Conversation", ConversationSchema);
 const Message = mongoose.models.Message || mongoose.model("Message", MessageSchema);
 
-const OWNER_ID = "test_owner_001";
-const OWNER_EMAIL = "owner@pgfinder.com";
+const OWNER_ID = "owner_spidertech1515";
+const OWNER_EMAIL = "spidertech1515@gmail.com";
 const OWNER_PHONE = "9876543210";
 
 const PHOTOS = [
