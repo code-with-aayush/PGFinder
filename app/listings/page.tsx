@@ -6,6 +6,7 @@ import Link from "next/link";
 import axios from "axios";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { FilterSidebar } from "@/components/listings/FilterSidebar";
+import { GridListingSkeleton } from "@/components/ui/skeleton-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -112,11 +113,7 @@ function ListingsContent() {
         {/* Listings Grid */}
         <div>
           {loading ? (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="skeleton h-80 rounded-lg" />
-              ))}
-            </div>
+            <GridListingSkeleton count={6} />
           ) : listings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <Search className="mb-4 h-16 w-16 text-muted-foreground/30" />
