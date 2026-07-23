@@ -1,149 +1,50 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Conversation from "@/models/Conversation";
 import Message from "@/models/Message";
-import User from "@/models/User";
-import { mockDb } from "@/lib/mockDb";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+const MAX_MESSAGE_LENGTH = 2000;
+
+async function getParticipantConversation(id: string, userId: string) {
+  return Conversation.findOne({ _id: id, $or: [{ studentId: userId }, { ownerId: userId }] });
+}
+
+export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const currentUserRecord = await currentUser();
-    const userEmail = currentUserRecord?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
-
-    const { id } = params;
-
-    try {
-      if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes("placeholder")) {
-        throw new Error("No MongoDB URI");
-      }
-      await connectToDatabase();
-
-      const conversation = await Conversation.findById(id);
-      if (!conversation) {
-        return NextResponse.json(
-          { error: "Conversation not found" },
-          { status: 404 }
-        );
-      }
-
-      const isParticipant =
-        conversation.studentId === userId ||
-        conversation.ownerId === userId ||
-        (userEmail === "spidertech1515@gmail.com" &&
-          (conversation.ownerId === "owner_spidertech1515" ||
-            conversation.ownerId === "test_owner_001"));
-
-      if (!isParticipant) {
-        return NextResponse.json(
-          { error: "Forbidden: You are not a participant in this conversation" },
-          { status: 403 }
-        );
-      }
-
-      const messages = await Message.find({ conversationId: id })
-        .sort({ createdAt: 1 })
-        .lean();
-
-      return NextResponse.json({ messages, conversation });
-    } catch {
-      // Mock fallback
-      const messages = mockDb.getMessages(id);
-      return NextResponse.json({ messages });
-    }
+    await connectToDatabase();
+    const conversation = await getParticipantConversation(params.id, userId);
+    if (!conversation) return NextResponse.json({ error: "Conversation not found or access is denied" }, { status: 404 });
+    const messages = await Message.find({ conversationId: conversation._id }).sort({ createdAt: 1, _id: 1 }).lean();
+    return NextResponse.json({ messages });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to fetch messages";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Unable to load chat messages", error);
+    return NextResponse.json({ error: "Unable to load messages. Please try again." }, { status: 503 });
   }
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { id } = params;
-    const body = await request.json();
-    const { content } = body;
-
-    if (!content || !content.trim()) {
-      return NextResponse.json(
-        { error: "Message content cannot be empty" },
-        { status: 400 }
-      );
-    }
-
-    try {
-      if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes("placeholder")) {
-        throw new Error("No MongoDB URI");
-      }
-      await connectToDatabase();
-
-      const conversation = await Conversation.findById(id);
-      if (!conversation) {
-        return NextResponse.json(
-          { error: "Conversation not found" },
-          { status: 404 }
-        );
-      }
-
-      const currentUserRecord = await currentUser();
-      const userEmail = currentUserRecord?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
-
-      const isOwnerSender =
-        conversation.ownerId === userId ||
-        (userEmail === "spidertech1515@gmail.com" &&
-          (conversation.ownerId === "owner_spidertech1515" ||
-            conversation.ownerId === "test_owner_001"));
-
-      const senderRole = isOwnerSender ? "owner" : "student";
-
-      const message = await Message.create({
-        conversationId: id,
-        senderId: userId,
-        senderRole,
-        content: content.trim(),
-      });
-
-      // Update conversation summary
-      conversation.lastMessage = content.trim();
-      conversation.lastMessageAt = new Date();
-      if (senderRole === "owner") {
-        conversation.unreadCountStudent += 1;
-      } else {
-        conversation.unreadCountOwner += 1;
-      }
-      await conversation.save();
-
-      return NextResponse.json({ message }, { status: 201 });
-    } catch {
-      // Mock fallback
-      const userRole = userId.includes("owner") ? "owner" : "student";
-      const message = mockDb.sendMessage({
-        conversationId: id,
-        senderId: userId,
-        senderRole: userRole,
-        content: content.trim(),
-      });
-      return NextResponse.json({ message }, { status: 201 });
-    }
+    const { content: rawContent } = await request.json();
+    const content = typeof rawContent === "string" ? rawContent.trim() : "";
+    if (!content) return NextResponse.json({ error: "Message content cannot be empty" }, { status: 400 });
+    if (content.length > MAX_MESSAGE_LENGTH) return NextResponse.json({ error: `Messages must be ${MAX_MESSAGE_LENGTH} characters or fewer` }, { status: 400 });
+    await connectToDatabase();
+    const conversation = await getParticipantConversation(params.id, userId);
+    if (!conversation) return NextResponse.json({ error: "Conversation not found or access is denied" }, { status: 404 });
+    const senderRole = conversation.ownerId === userId ? "owner" : "student";
+    const message = await Message.create({ conversationId: conversation._id, senderId: userId, senderRole, content });
+    conversation.lastMessage = content; conversation.lastMessageAt = message.createdAt;
+    if (senderRole === "owner") conversation.unreadCountStudent += 1;
+    else conversation.unreadCountOwner += 1;
+    await conversation.save();
+    return NextResponse.json({ message }, { status: 201 });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to send message";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Unable to send chat message", error);
+    return NextResponse.json({ error: "Unable to send message. Please try again." }, { status: 503 });
   }
 }

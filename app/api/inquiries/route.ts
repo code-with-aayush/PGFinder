@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     const currentUserRecord = await currentUser();
-    const userEmail = currentUserRecord?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
+    const userEmail = (currentUserRecord?.primaryEmailAddress?.emailAddress ?? currentUserRecord?.emailAddresses?.[0]?.emailAddress)?.toLowerCase();
 
     const { searchParams } = new URL(request.url);
     const roleParam = searchParams.get("role");

@@ -5,130 +5,46 @@ import Conversation from "@/models/Conversation";
 import Message from "@/models/Message";
 import Listing from "@/models/Listing";
 import User from "@/models/User";
-import { mockDb } from "@/lib/mockDb";
+
+const MAX_MESSAGE_LENGTH = 2000;
 
 export async function GET() {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const currentUserRecord = await currentUser();
-    const userEmail = currentUserRecord?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
-
-    try {
-      if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes("placeholder")) {
-        throw new Error("No MongoDB URI");
-      }
-      await connectToDatabase();
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ownerOrStudentConditions: any[] = [{ studentId: userId }, { ownerId: userId }];
-      if (userEmail === "spidertech1515@gmail.com") {
-        ownerOrStudentConditions.push({ ownerId: "owner_spidertech1515" }, { ownerId: "test_owner_001" });
-      }
-
-      const conversations = await Conversation.find({
-        $or: ownerOrStudentConditions,
-      })
-        .sort({ updatedAt: -1 })
-        .lean();
-
-      return NextResponse.json({ conversations });
-    } catch {
-      // Mock fallback
-      const conversations = mockDb.getConversations(userId, userEmail);
-      return NextResponse.json({ conversations });
-    }
+    await connectToDatabase();
+    const conversations = await Conversation.find({ $or: [{ studentId: userId }, { ownerId: userId }] }).sort({ lastMessageAt: -1, _id: -1 }).lean();
+    return NextResponse.json({ conversations });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to fetch conversations";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Unable to load chat conversations", error);
+    return NextResponse.json({ error: "Chat is temporarily unavailable. Please try again." }, { status: 503 });
   }
 }
 
 export async function POST(request: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { listingId, initialMessage } = await request.json();
+    const content = typeof initialMessage === "string" ? initialMessage.trim() : "";
+    if (!listingId || typeof listingId !== "string") return NextResponse.json({ error: "listingId is required" }, { status: 400 });
+    if (content.length > MAX_MESSAGE_LENGTH) return NextResponse.json({ error: `Messages must be ${MAX_MESSAGE_LENGTH} characters or fewer` }, { status: 400 });
+    await connectToDatabase();
+    const listing = await Listing.findById(listingId).lean();
+    if (!listing) return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+    if (listing.ownerId === userId) return NextResponse.json({ error: "You cannot start a chat about your own listing" }, { status: 400 });
+    const [profile, clerkUser] = await Promise.all([User.findOne({ clerkId: userId }).lean(), currentUser()]);
+    let conversation = await Conversation.findOne({ studentId: userId, listingId });
+    if (!conversation) conversation = await Conversation.create({ studentId: userId, studentName: profile?.name || clerkUser?.fullName || "Student User", studentEmail: profile?.email || clerkUser?.emailAddresses[0]?.emailAddress || "", ownerId: listing.ownerId, listingId, listingTitle: listing.title, lastMessage: "", lastMessageAt: new Date() });
+    let message = null;
+    if (content) {
+      message = await Message.create({ conversationId: conversation._id, senderId: userId, senderRole: "student", content });
+      conversation.lastMessage = content; conversation.lastMessageAt = message.createdAt; conversation.unreadCountOwner += 1;
+      await conversation.save();
     }
-
-    const body = await request.json();
-    const { listingId, initialMessage } = body;
-
-    if (!listingId) {
-      return NextResponse.json(
-        { error: "listingId is required" },
-        { status: 400 }
-      );
-    }
-
-    try {
-      if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes("placeholder")) {
-        throw new Error("No MongoDB URI");
-      }
-      await connectToDatabase();
-
-      const listing = await Listing.findById(listingId);
-      if (!listing) {
-        return NextResponse.json(
-          { error: "Listing not found" },
-          { status: 404 }
-        );
-      }
-
-      const user = await User.findOne({ clerkId: userId });
-      const studentName = user?.name || "Student User";
-      const studentEmail = user?.email || "";
-
-      let conversation = await Conversation.findOne({
-        studentId: userId,
-        listingId,
-      });
-
-      if (!conversation) {
-        conversation = await Conversation.create({
-          studentId: userId,
-          studentName,
-          studentEmail,
-          ownerId: listing.ownerId,
-          listingId,
-          listingTitle: listing.title,
-          lastMessage: initialMessage || "Chat started",
-          lastMessageAt: new Date(),
-          unreadCountOwner: initialMessage ? 1 : 0,
-        });
-
-        if (initialMessage) {
-          await Message.create({
-            conversationId: conversation._id,
-            senderId: userId,
-            senderRole: "student",
-            content: initialMessage,
-          });
-        }
-      }
-
-      return NextResponse.json({ conversation }, { status: 201 });
-    } catch {
-      // Mock fallback
-      const listing = mockDb.getListingById(listingId);
-      const conversation = mockDb.getOrCreateConversation({
-        studentId: userId,
-        studentName: "Student User",
-        studentEmail: "student@example.com",
-        ownerId: listing ? listing.ownerId : "seed_owner_001",
-        listingId,
-        listingTitle: listing ? listing.title : "Mock PG Listing",
-        initialMessage,
-      });
-      return NextResponse.json({ conversation }, { status: 201 });
-    }
+    return NextResponse.json({ conversation, message }, { status: 201 });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to create conversation";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Unable to create chat conversation", error);
+    return NextResponse.json({ error: "Unable to start this conversation. Please try again." }, { status: 503 });
   }
 }

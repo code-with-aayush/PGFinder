@@ -52,7 +52,6 @@ function ChatContent() {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [selectedConvId, setSelectedConvId] = useState<string | null>(initialConvId);
   const [messages, setMessages] = useState<MessageItem[]>([]);
-  const [optimisticMsgs, setOptimisticMsgs] = useState<MessageItem[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [loadingConvs, setLoadingConvs] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -156,7 +155,6 @@ function ChatContent() {
 
   async function fetchMessages(convId: string) {
     setLoadingMessages(true);
-    setOptimisticMsgs([]);
     try {
       const res = await axios.get(`/api/chat/conversations/${convId}/messages`);
       const msgs: MessageItem[] = res.data.messages || [];
@@ -206,20 +204,6 @@ function ChatContent() {
     setInputMessage("");
 
     const targetConvId = selectedConvId;
-    const currentRole = isOwner ? "owner" : "student";
-    const tempId = "temp_" + Date.now();
-
-    const tempMsg: MessageItem = {
-      _id: tempId,
-      conversationId: targetConvId,
-      senderId: user.id,
-      senderRole: currentRole,
-      content,
-      createdAt: new Date().toISOString(),
-    };
-
-    setOptimisticMsgs((prev) => [...prev, tempMsg]);
-    setTimeout(scrollToBottom, 50);
     setSending(true);
 
     try {
@@ -230,22 +214,18 @@ function ChatContent() {
 
       if (res.data?.message) {
         const confirmedMsg: MessageItem = res.data.message;
-        setMessages((prev) => [...prev, confirmedMsg]);
+        setMessages((prev) => prev.some((message) => message._id === confirmedMsg._id) ? prev : [...prev, confirmedMsg]);
+        setTimeout(scrollToBottom, 50);
       }
       fetchConversationsSilent();
     } catch {
       toast.error("Failed to send message");
     } finally {
-      setOptimisticMsgs((prev) => prev.filter((m) => m._id !== tempId));
       setSending(false);
     }
   }
 
-  // Combine loaded server messages with active optimistic messages
-  const allDisplayMessages = [
-    ...messages,
-    ...optimisticMsgs.filter((om) => om.conversationId === selectedConvId),
-  ];
+  const allDisplayMessages = messages;
 
   if (roleLoading || loadingConvs) {
     return (
@@ -395,7 +375,7 @@ function ChatContent() {
                 ) : (
                   allDisplayMessages.map((msg) => {
                     const isMe = msg.senderId === user?.id;
-                    const isTemp = msg._id.startsWith("temp_");
+                    const isTemp = false;
                     return (
                       <div
                         key={msg._id}

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   const sort = searchParams.get("sort") || "newest";
 
   const userRecord = await currentUser();
-  const userEmail = userRecord?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
+  const userEmail = (userRecord?.primaryEmailAddress?.emailAddress ?? userRecord?.emailAddresses?.[0]?.emailAddress)?.toLowerCase();
 
   try {
     if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes("placeholder")) {
