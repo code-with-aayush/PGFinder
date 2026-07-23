@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ const Popup = dynamic(
 );
 
 export default function MapPage() {
+  const searchParams = useSearchParams();
   const [listings, setListings] = useState<MapListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [college, setCollege] = useState("");

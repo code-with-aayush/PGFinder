@@ -343,6 +343,11 @@ export default function ListingDetailPage() {
               {listing.address.street}, {listing.address.city},{" "}
               {listing.address.state} - {listing.address.pincode}
             </div>
+            <Link href={`/map?lat=${listing.location.coordinates[1]}&lng=${listing.location.coordinates[0]}&listing=${listing._id}`} className="mt-3 inline-flex">
+              <Button variant="outline" size="sm" className="gap-2">
+                <MapPin className="h-4 w-4 text-primary" /> View exact location on map
+              </Button>
+            </Link>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-3xl font-bold text-primary">
                 {formatPrice(listing.price)}
