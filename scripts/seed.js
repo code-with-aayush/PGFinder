@@ -1,6 +1,6 @@
-// PGFinder Seed Script
+// PGFinder Fresh Seed Script
 // Run: node scripts/seed.js
-// Populates the database with 15 sample PG listings, users, inquiries, and saved items
+// Cleans all collections and populates 20 sample PG listings for Test PG Owner
 
 const mongoose = require("mongoose");
 const fs = require("fs");
@@ -38,6 +38,7 @@ if (!MONGODB_URI) {
 const ListingSchema = new mongoose.Schema(
   {
     ownerId: String,
+    ownerPhone: String,
     title: String,
     description: String,
     price: Number,
@@ -102,16 +103,42 @@ const SavedSchema = new mongoose.Schema({
   listingId: mongoose.Schema.Types.ObjectId,
   savedAt: { type: Date, default: Date.now },
 });
-SavedSchema.index({ studentId: 1, listingId: 1 }, { unique: true });
 
-const Listing =
-  mongoose.models.Listing || mongoose.model("Listing", ListingSchema);
+const ConversationSchema = new mongoose.Schema({
+  studentId: String,
+  studentName: String,
+  studentEmail: String,
+  ownerId: String,
+  listingId: mongoose.Schema.Types.ObjectId,
+  listingTitle: String,
+  lastMessage: String,
+  lastMessageAt: Date,
+  unreadCountStudent: Number,
+  unreadCountOwner: Number,
+  createdAt: Date,
+  updatedAt: Date,
+});
+
+const MessageSchema = new mongoose.Schema({
+  conversationId: mongoose.Schema.Types.ObjectId,
+  senderId: String,
+  senderRole: String,
+  content: String,
+  read: Boolean,
+  createdAt: Date,
+});
+
+const Listing = mongoose.models.Listing || mongoose.model("Listing", ListingSchema);
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
-const Inquiry =
-  mongoose.models.Inquiry || mongoose.model("Inquiry", InquirySchema);
+const Inquiry = mongoose.models.Inquiry || mongoose.model("Inquiry", InquirySchema);
 const Saved = mongoose.models.Saved || mongoose.model("Saved", SavedSchema);
+const Conversation = mongoose.models.Conversation || mongoose.model("Conversation", ConversationSchema);
+const Message = mongoose.models.Message || mongoose.model("Message", MessageSchema);
 
-// ── Sample Photos (Cloudinary placeholder URLs) ────────────────────────
+const OWNER_ID = "test_owner_001";
+const OWNER_EMAIL = "owner@pgfinder.com";
+const OWNER_PHONE = "9876543210";
+
 const PHOTOS = [
   "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",
   "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",
@@ -120,14 +147,10 @@ const PHOTOS = [
   "https://images.unsplash.com/photo-1540518614846-7eded433c457?w=800&h=600&fit=crop",
 ];
 
-// ── Seed Data ──────────────────────────────────────────────────────────
-const OWNER_ID = "seed_owner_001";
-const STUDENT_ID = "seed_student_001";
-
 const listings = [
   {
     title: "Sunshine PG for Girls",
-    description: "Well-maintained girls PG with home-cooked meals. Located near DTU campus. Spacious rooms with attached bathrooms. 24/7 security and CCTV surveillance. Walking distance to metro station.",
+    description: "Well-maintained girls PG with home-cooked meals. Located near DTU campus. Spacious rooms with attached bathrooms, 24/7 security and CCTV surveillance.",
     price: 8500,
     type: "PG",
     gender: "female",
@@ -139,7 +162,7 @@ const listings = [
   },
   {
     title: "Royal Boys Hostel",
-    description: "Premium boys hostel with modern amenities. AC rooms, high-speed WiFi, and gym access. Located in the heart of South Delhi with excellent connectivity.",
+    description: "Premium boys hostel with modern amenities. AC rooms, high-speed WiFi, and gym access. Located in Hauz Khas with excellent metro connectivity.",
     price: 12000,
     type: "Hostel",
     gender: "male",
@@ -151,7 +174,7 @@ const listings = [
   },
   {
     title: "Green Valley PG",
-    description: "Budget-friendly PG for students. Clean rooms, filtered water, home-style food. Close to North Campus DU colleges.",
+    description: "Budget-friendly PG for DU North Campus students. Clean rooms, filtered RO water, and home-style food.",
     price: 6000,
     type: "PG",
     gender: "any",
@@ -163,7 +186,7 @@ const listings = [
   },
   {
     title: "Koramangala Student Hub",
-    description: "Modern co-living space in Koramangala, 5th Block. Perfect for students of Christ University and PES. Fully furnished rooms with study tables.",
+    description: "Modern co-living space in Koramangala 5th Block. Perfect for Christ University and PES students. Fully furnished rooms.",
     price: 9500,
     type: "Flat Share",
     gender: "any",
@@ -175,7 +198,7 @@ const listings = [
   },
   {
     title: "BTM Layout Girls PG",
-    description: "Safe and secure girls PG in BTM Layout. Homelike atmosphere with strict security. Near Silk Board junction with bus connectivity to all tech parks.",
+    description: "Safe and secure girls PG in BTM Layout 2nd Stage. Strict biometric security and homely environment.",
     price: 7500,
     type: "PG",
     gender: "female",
@@ -187,7 +210,7 @@ const listings = [
   },
   {
     title: "HSR Layout Boys Hostel",
-    description: "Affordable boys hostel in HSR Layout. Triple and double sharing available. Walking distance to HSR BDA Complex for food and shopping.",
+    description: "Affordable boys hostel in HSR Sector 2. Double and triple sharing available with gaming lounge.",
     price: 6500,
     type: "Hostel",
     gender: "male",
@@ -198,8 +221,8 @@ const listings = [
     isVerified: false,
   },
   {
-    title: "Indiranagar Premium PG",
-    description: "Premium PG accommodation in Indiranagar. Walking distance to 100 Feet Road. Fully furnished rooms with AC and premium interiors.",
+    title: "Indiranagar Premium Co-Living",
+    description: "Luxury co-living accommodation in Indiranagar. Walking distance to 100 Feet Road with weekly room cleaning.",
     price: 15000,
     type: "PG",
     gender: "any",
@@ -211,7 +234,7 @@ const listings = [
   },
   {
     title: "Kothrud Student PG",
-    description: "Affordable PG near MIT Pune and Cummins College. Home-cooked Maharashtrian meals. Spacious rooms with balcony.",
+    description: "Affordable PG near MIT Pune and Cummins College. Authentic Maharashtrian meals included.",
     price: 5500,
     type: "PG",
     gender: "male",
@@ -222,88 +245,148 @@ const listings = [
     isVerified: false,
   },
   {
-    title: "Viman Nagar Girls Hostel",
-    description: "Premium girls hostel near Symbiosis and SIMC. AC rooms, gym, rooftop study area. Full meals with veg and non-veg options.",
+    title: "Viman Nagar Executive PG",
+    description: "Premium student accommodation near Symbiosis International University. High-speed 300Mbps WiFi and AC.",
     price: 11000,
-    type: "Hostel",
+    type: "PG",
     gender: "female",
-    address: { street: "Viman Nagar Road", city: "Pune", state: "Maharashtra", pincode: "411014" },
-    location: { type: "Point", coordinates: [73.9148, 18.5679] },
-    amenities: { ac: true, wifi: true, meals: true, laundry: true, parking: false, hotWater: true, powerBackup: true, security: true },
-    rules: { vegOnly: false, noSmoking: true, noAlcohol: true, guestPolicy: "Female guests only", curfewTime: "10:30 PM" },
+    address: { street: "Near Symbiosis Campus, Viman Nagar", city: "Pune", state: "Maharashtra", pincode: "411014" },
+    location: { type: "Point", coordinates: [73.9143, 18.5679] },
+    amenities: { ac: true, wifi: true, meals: true, laundry: true, parking: true, hotWater: true, powerBackup: true, security: true },
+    rules: { vegOnly: false, noSmoking: true, noAlcohol: true, guestPolicy: "Guests allowed till 9 PM", curfewTime: "10:30 PM" },
     isVerified: true,
   },
   {
-    title: "Hinjewadi IT Hub PG",
-    description: "Budget PG for working professionals and students in Hinjewadi Phase 1. Walking distance to Rajiv Gandhi IT Park.",
-    price: 7000,
+    title: "Powai Lake View PG for Boys",
+    description: "Scenic Lake view PG near IIT Bombay campus. Fully furnished rooms with balcony, desk, and daily housekeeping.",
+    price: 14500,
     type: "PG",
     gender: "male",
-    address: { street: "Phase 1, Hinjewadi", city: "Pune", state: "Maharashtra", pincode: "411057" },
-    location: { type: "Point", coordinates: [73.7378, 18.5912] },
-    amenities: { ac: false, wifi: true, meals: true, laundry: false, parking: true, hotWater: true, powerBackup: true, security: true },
-    rules: { vegOnly: false, noSmoking: true, noAlcohol: true, guestPolicy: "No restrictions", curfewTime: "11:00 PM" },
+    address: { street: "Hiranandani Gardens, Powai", city: "Mumbai", state: "Maharashtra", pincode: "400076" },
+    location: { type: "Point", coordinates: [72.9116, 19.1176] },
+    amenities: { ac: true, wifi: true, meals: true, laundry: true, parking: true, hotWater: true, powerBackup: true, security: true },
+    rules: { vegOnly: false, noSmoking: true, noAlcohol: false, guestPolicy: "Guests allowed", curfewTime: "11:30 PM" },
+    isVerified: true,
+  },
+  {
+    title: "Andheri West Girls PG",
+    description: "Prime location girls PG near Mithibai and NMIMS colleges. Modern security system with female warden.",
+    price: 13000,
+    type: "PG",
+    gender: "female",
+    address: { street: "JVPD Scheme, Andheri West", city: "Mumbai", state: "Maharashtra", pincode: "400049" },
+    location: { type: "Point", coordinates: [72.8347, 19.1072] },
+    amenities: { ac: true, wifi: true, meals: true, laundry: true, parking: false, hotWater: true, powerBackup: true, security: true },
+    rules: { vegOnly: true, noSmoking: true, noAlcohol: true, guestPolicy: "No male guests", curfewTime: "10:00 PM" },
+    isVerified: true,
+  },
+  {
+    title: "Gachibowli Tech Hub PG",
+    description: "Spacious PG accommodation near IIIT Hyderabad and ISB. Quiet study atmosphere with high-speed fiber internet.",
+    price: 8000,
+    type: "Hostel",
+    gender: "male",
+    address: { street: "Near IIIT Junction, Gachibowli", city: "Hyderabad", state: "Telangana", pincode: "500032" },
+    location: { type: "Point", coordinates: [78.3489, 17.4435] },
+    amenities: { ac: true, wifi: true, meals: true, laundry: true, parking: true, hotWater: true, powerBackup: true, security: true },
+    rules: { vegOnly: false, noSmoking: true, noAlcohol: true, guestPolicy: "Guests allowed till 8 PM", curfewTime: "10:00 PM" },
     isVerified: false,
   },
   {
-    title: "FC Road Co-Living Space",
-    description: "Modern co-living flat share on Ferguson College Road. Ideal for COEP and Ferguson College students. Fully furnished with common kitchen.",
-    price: 8000,
+    title: "Madhapur Luxury Co-Living",
+    description: "Modern co-living space near Hitech City metro. 3 times buffet meal plan included.",
+    price: 10500,
     type: "Flat Share",
     gender: "any",
-    address: { street: "FC Road, Deccan Gymkhana", city: "Pune", state: "Maharashtra", pincode: "411004" },
-    location: { type: "Point", coordinates: [73.8413, 18.5236] },
-    amenities: { ac: false, wifi: true, meals: false, laundry: true, parking: false, hotWater: true, powerBackup: false, security: true },
+    address: { street: "Image Gardens Road, Madhapur", city: "Hyderabad", state: "Telangana", pincode: "500081" },
+    location: { type: "Point", coordinates: [78.3888, 17.4483] },
+    amenities: { ac: true, wifi: true, meals: true, laundry: true, parking: true, hotWater: true, powerBackup: true, security: true },
     rules: { vegOnly: false, noSmoking: true, noAlcohol: false, guestPolicy: "Guests allowed", curfewTime: "No curfew" },
+    isVerified: true,
+  },
+  {
+    title: "Noida Sector 62 Student PG",
+    description: "Comfortable student PG near Jaypee Institute and Noida Electronic City metro station.",
+    price: 7000,
+    type: "PG",
+    gender: "any",
+    address: { street: "Block B, Sector 62", city: "Noida", state: "Uttar Pradesh", pincode: "201309" },
+    location: { type: "Point", coordinates: [77.3639, 28.6270] },
+    amenities: { ac: true, wifi: true, meals: true, laundry: true, parking: true, hotWater: true, powerBackup: true, security: true },
+    rules: { vegOnly: true, noSmoking: true, noAlcohol: true, guestPolicy: "Guests allowed till 8 PM", curfewTime: "10:00 PM" },
+    isVerified: true,
+  },
+  {
+    title: "Cyber City Boys PG",
+    description: "Premium boys PG near Cyber Hub and Phase 3 Rapid Metro. Gym, pool table, and delicious food.",
+    price: 12500,
+    type: "PG",
+    gender: "male",
+    address: { street: "DLF Phase 3, Near Cyber Hub", city: "Gurgaon", state: "Haryana", pincode: "122002" },
+    location: { type: "Point", coordinates: [77.0882, 28.4950] },
+    amenities: { ac: true, wifi: true, meals: true, laundry: true, parking: true, hotWater: true, powerBackup: true, security: true },
+    rules: { vegOnly: false, noSmoking: true, noAlcohol: false, guestPolicy: "No restrictions", curfewTime: "No curfew" },
+    isVerified: true,
+  },
+  {
+    title: "Golf Course Road Co-Living",
+    description: "Luxury student & professional co-living space on Golf Course Road. Fully serviced suites.",
+    price: 16000,
+    type: "Flat Share",
+    gender: "any",
+    address: { street: "Sector 54, Golf Course Road", city: "Gurgaon", state: "Haryana", pincode: "122011" },
+    location: { type: "Point", coordinates: [77.1052, 28.4398] },
+    amenities: { ac: true, wifi: true, meals: true, laundry: true, parking: true, hotWater: true, powerBackup: true, security: true },
+    rules: { vegOnly: false, noSmoking: true, noAlcohol: false, guestPolicy: "Guests allowed", curfewTime: "No curfew" },
+    isVerified: true,
+  },
+  {
+    title: "Satya Niketan DU South Campus PG",
+    description: "Popular PG in Satya Niketan for South Campus DU students (Venky, ARSD, RLA colleges).",
+    price: 9000,
+    type: "PG",
+    gender: "female",
+    address: { street: "Main Market, Satya Niketan", city: "Delhi", state: "Delhi", pincode: "110021" },
+    location: { type: "Point", coordinates: [77.1691, 28.5885] },
+    amenities: { ac: true, wifi: true, meals: true, laundry: true, parking: false, hotWater: true, powerBackup: true, security: true },
+    rules: { vegOnly: true, noSmoking: true, noAlcohol: true, guestPolicy: "Guests allowed till 7 PM", curfewTime: "9:30 PM" },
+    isVerified: true,
+  },
+  {
+    title: "Electronic City Phase 1 PG",
+    description: "Affordable PG near Infosys Gate 1 and Wipro. Clean rooms with attached balcony and food.",
+    price: 6800,
+    type: "PG",
+    gender: "male",
+    address: { street: "Phase 1, Electronic City", city: "Bangalore", state: "Karnataka", pincode: "560100" },
+    location: { type: "Point", coordinates: [77.6648, 12.8452] },
+    amenities: { ac: false, wifi: true, meals: true, laundry: true, parking: true, hotWater: true, powerBackup: true, security: true },
+    rules: { vegOnly: false, noSmoking: true, noAlcohol: true, guestPolicy: "Guests allowed till 8 PM", curfewTime: "10:00 PM" },
     isVerified: false,
   },
   {
-    title: "Dwarka PG for Boys",
-    description: "Spacious boys PG in Dwarka Sector 12. Close to Dwarka metro station. Furnished rooms with attached washroom. Breakfast and dinner included.",
-    price: 7500,
-    type: "PG",
+    title: "Baner Road Boys Hostel",
+    description: "Budget boys hostel on Baner Road near Cummins and Indira college campuses.",
+    price: 7200,
+    type: "Hostel",
     gender: "male",
-    address: { street: "Sector 12, Dwarka", city: "Delhi", state: "Delhi", pincode: "110078" },
-    location: { type: "Point", coordinates: [77.0266, 28.5921] },
+    address: { street: "Baner Road, Near Balewadi High Street", city: "Pune", state: "Maharashtra", pincode: "411045" },
+    location: { type: "Point", coordinates: [73.7868, 18.5590] },
     amenities: { ac: false, wifi: true, meals: true, laundry: false, parking: true, hotWater: true, powerBackup: true, security: true },
     rules: { vegOnly: false, noSmoking: true, noAlcohol: true, guestPolicy: "Guests allowed till 9 PM", curfewTime: "10:30 PM" },
     isVerified: false,
   },
   {
-    title: "Whitefield Executive PG",
-    description: "Executive PG accommodation in Whitefield near ITPL. Ideal for IT professionals. Single and double sharing rooms with premium furnishing.",
-    price: 13000,
+    title: "Bandra West Luxury PG",
+    description: "Exclusive luxury PG in Bandra West near St. Xavier's and National College. Fully serviced luxury apartment.",
+    price: 18000,
     type: "PG",
     gender: "any",
-    address: { street: "ITPL Main Road, Whitefield", city: "Bangalore", state: "Karnataka", pincode: "560066" },
-    location: { type: "Point", coordinates: [77.7500, 12.9698] },
+    address: { street: "Hill Road, Bandra West", city: "Mumbai", state: "Maharashtra", pincode: "400050" },
+    location: { type: "Point", coordinates: [72.8311, 19.0596] },
     amenities: { ac: true, wifi: true, meals: true, laundry: true, parking: true, hotWater: true, powerBackup: true, security: true },
-    rules: { vegOnly: false, noSmoking: true, noAlcohol: false, guestPolicy: "No restrictions", curfewTime: "No curfew" },
-    isVerified: false,
-  },
-  {
-    title: "Noida Sector 62 Hostel",
-    description: "Student hostel near Amity University and JIIT. AC and non-AC rooms available. Common study hall and recreation room.",
-    price: 9000,
-    type: "Hostel",
-    gender: "any",
-    address: { street: "Sector 62", city: "Noida", state: "Uttar Pradesh", pincode: "201301" },
-    location: { type: "Point", coordinates: [77.3630, 28.6270] },
-    amenities: { ac: true, wifi: true, meals: true, laundry: true, parking: false, hotWater: true, powerBackup: true, security: true },
-    rules: { vegOnly: false, noSmoking: true, noAlcohol: true, guestPolicy: "Guests allowed till 7 PM", curfewTime: "10:00 PM" },
-    isVerified: false,
-  },
-  {
-    title: "Hadapsar Budget PG",
-    description: "Most affordable PG in Hadapsar area. Clean rooms, basic amenities. Near EON IT Park and Magarpatta City.",
-    price: 4500,
-    type: "PG",
-    gender: "male",
-    address: { street: "Hadapsar Industrial Estate", city: "Pune", state: "Maharashtra", pincode: "411028" },
-    location: { type: "Point", coordinates: [73.9260, 18.5089] },
-    amenities: { ac: false, wifi: true, meals: false, laundry: false, parking: false, hotWater: true, powerBackup: false, security: false },
-    rules: { vegOnly: false, noSmoking: false, noAlcohol: false, guestPolicy: "No restrictions", curfewTime: "No curfew" },
-    isVerified: false,
+    rules: { vegOnly: false, noSmoking: true, noAlcohol: false, guestPolicy: "Guests allowed", curfewTime: "No curfew" },
+    isVerified: true,
   },
 ];
 
@@ -315,102 +398,61 @@ async function seed() {
     console.log("✅ Connected to MongoDB");
 
     // Clear existing data
-    console.log("🧹 Clearing existing data...");
+    console.log("🧹 Clearing all existing database collections...");
     await Promise.all([
       Listing.deleteMany({}),
       User.deleteMany({}),
       Inquiry.deleteMany({}),
       Saved.deleteMany({}),
+      Conversation.deleteMany({}),
+      Message.deleteMany({}),
     ]);
 
-    // Create users
-    console.log("👤 Creating seed users...");
-    await User.create([
-      {
-        clerkId: OWNER_ID,
-        name: "Rajesh Kumar",
-        email: "rajesh.owner@pgfinder.in",
-        role: "owner",
-        phone: "9876543210",
-      },
-      {
-        clerkId: STUDENT_ID,
-        name: "Priya Sharma",
-        email: "priya.student@pgfinder.in",
-        role: "student",
-        phone: "9876543211",
-      },
-    ]);
+    // Create test owner user
+    console.log("👤 Creating Test PG Owner User...");
+    const ownerUser = await User.create({
+      clerkId: OWNER_ID,
+      name: "Rajesh Sharma (PG Owner)",
+      email: OWNER_EMAIL,
+      role: "owner",
+      phone: OWNER_PHONE,
+    });
 
-    // Create listings
-    console.log("🏠 Creating 15 PG listings...");
+    // Create 20 listings
+    console.log("🏠 Creating 20 fresh PG listings...");
     const createdListings = await Listing.create(
-      listings.map((listing) => ({
+      listings.map((listing, idx) => ({
         ...listing,
         ownerId: OWNER_ID,
+        ownerPhone: OWNER_PHONE,
         photos: [
-          PHOTOS[Math.floor(Math.random() * PHOTOS.length)],
-          PHOTOS[Math.floor(Math.random() * PHOTOS.length)],
-          PHOTOS[Math.floor(Math.random() * PHOTOS.length)],
+          PHOTOS[idx % PHOTOS.length],
+          PHOTOS[(idx + 1) % PHOTOS.length],
+          PHOTOS[(idx + 2) % PHOTOS.length],
         ],
         isActive: true,
       }))
     );
 
-    // Create saved items
-    console.log("❤️ Creating saved listings for student...");
-    await Saved.create([
-      { studentId: STUDENT_ID, listingId: createdListings[0]._id },
-      { studentId: STUDENT_ID, listingId: createdListings[3]._id },
-      { studentId: STUDENT_ID, listingId: createdListings[6]._id },
-    ]);
-
-    // Create inquiries
-    console.log("💬 Creating sample inquiries...");
-    await Inquiry.create([
-      {
-        listingId: createdListings[0]._id,
-        listingTitle: createdListings[0].title,
-        studentId: STUDENT_ID,
-        ownerId: OWNER_ID,
-        message:
-          "Hi, I am a 2nd year student at DTU. Is there availability for a single room from next month? I am looking for a veg-only PG with AC.",
-        status: "responded",
-      },
-      {
-        listingId: createdListings[3]._id,
-        listingTitle: createdListings[3].title,
-        studentId: STUDENT_ID,
-        ownerId: OWNER_ID,
-        message:
-          "Hello! I will be joining Christ University in August. Do you have any double-sharing rooms available? What is the security deposit?",
-        status: "pending",
-      },
-      {
-        listingId: createdListings[8]._id,
-        listingTitle: createdListings[8].title,
-        studentId: STUDENT_ID,
-        ownerId: OWNER_ID,
-        message:
-          "I am interested in your hostel near Symbiosis. Can I visit this weekend to see the room and facilities?",
-        status: "pending",
-      },
-    ]);
-
-    console.log("\n✅ Seed completed successfully!");
-    console.log(`   📍 ${createdListings.length} listings created`);
-    console.log(`   👤 2 users created (1 owner, 1 student)`);
-    console.log(`   ❤️ 3 saved listings created`);
-    console.log(`   💬 3 inquiries created`);
-    console.log(`\n   🔑 Owner ID: ${OWNER_ID}`);
-    console.log(`   🔑 Student ID: ${STUDENT_ID}`);
-    console.log(`\n   Cities: Delhi, Bangalore, Pune, Noida`);
+    console.log("\n=======================================================");
+    console.log("  🎉 FRESH DATABASE SEED COMPLETED SUCCESSFULLY!");
+    console.log("=======================================================");
+    console.log(`   📍 ${createdListings.length} PG Listings Created`);
+    console.log(`   👤 1 Test Owner User Created`);
+    console.log(`\n   🔑 TEST PG OWNER CREDENTIALS:`);
+    console.log(`      • Email: ${OWNER_EMAIL}`);
+    console.log(`      • Owner ID: ${OWNER_ID}`);
+    console.log(`      • Phone: ${OWNER_PHONE}`);
+    console.log(`\n   🎓 STUDENT ID:`);
+    console.log(`      • Use your own personal login/sign-up account!`);
+    console.log(`\n   Cities: Delhi, Bangalore, Pune, Mumbai, Hyderabad, Noida, Gurgaon`);
     console.log(`   Verified: ${createdListings.filter((l) => l.isVerified).length} listings`);
+    console.log("=======================================================\n");
   } catch (error) {
     console.error("❌ Seed failed:", error);
   } finally {
     await mongoose.disconnect();
-    console.log("\n🔌 Disconnected from MongoDB");
+    console.log("🔌 Disconnected from MongoDB");
   }
 }
 
