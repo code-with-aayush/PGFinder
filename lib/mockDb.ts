@@ -64,6 +64,31 @@ export interface MockSaved {
   savedAt: string;
 }
 
+export interface MockConversation {
+  _id: string;
+  studentId: string;
+  studentName?: string;
+  studentEmail?: string;
+  ownerId: string;
+  listingId: string;
+  listingTitle: string;
+  lastMessage: string;
+  lastMessageAt: string;
+  unreadCountStudent: number;
+  unreadCountOwner: number;
+  createdAt: string;
+}
+
+export interface MockMessage {
+  _id: string;
+  conversationId: string;
+  senderId: string;
+  senderRole: "student" | "owner";
+  content: string;
+  read: boolean;
+  createdAt: string;
+}
+
 const PHOTOS = [
   "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",
   "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",
@@ -78,6 +103,41 @@ declare global {
   var mockListings: MockListing[] | undefined;
   var mockInquiries: MockInquiry[] | undefined;
   var mockSaved: MockSaved[] | undefined;
+  var mockConversations: MockConversation[] | undefined;
+  var mockMessages: MockMessage[] | undefined;
+}
+
+if (!global.mockConversations) {
+  global.mockConversations = [
+    {
+      _id: "conv_001",
+      studentId: "seed_student_001",
+      studentName: "Rahul Sharma",
+      studentEmail: "rahul@example.com",
+      ownerId: "seed_owner_001",
+      listingId: "64ba3c690a2c918a5e000001",
+      listingTitle: "Sunshine PG for Girls",
+      lastMessage: "Hi, is this room available for next month?",
+      lastMessageAt: new Date().toISOString(),
+      unreadCountStudent: 0,
+      unreadCountOwner: 1,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+}
+
+if (!global.mockMessages) {
+  global.mockMessages = [
+    {
+      _id: "msg_001",
+      conversationId: "conv_001",
+      senderId: "seed_student_001",
+      senderRole: "student",
+      content: "Hi, is this room available for next month?",
+      read: false,
+      createdAt: new Date().toISOString(),
+    },
+  ];
 }
 
 if (!global.mockListings) {
@@ -323,5 +383,90 @@ export const mockDb = {
       i._id === id && i.ownerId === ownerId ? { ...i, status: "responded" } : i
     );
     return true;
+  },
+  getConversations: (userId: string) => {
+    return (global.mockConversations || []).filter(
+      (c) => c.studentId === userId || c.ownerId === userId || (!userId && c.ownerId === "seed_owner_001")
+    );
+  },
+  getOrCreateConversation: (params: {
+    studentId: string;
+    studentName?: string;
+    studentEmail?: string;
+    ownerId: string;
+    listingId: string;
+    listingTitle: string;
+    initialMessage?: string;
+  }) => {
+    let conv = (global.mockConversations || []).find(
+      (c) => c.studentId === params.studentId && c.listingId === params.listingId
+    );
+    if (!conv) {
+      conv = {
+        _id: "conv_" + Math.random().toString(36).substring(2, 9),
+        studentId: params.studentId,
+        studentName: params.studentName || "Student User",
+        studentEmail: params.studentEmail || "",
+        ownerId: params.ownerId,
+        listingId: params.listingId,
+        listingTitle: params.listingTitle,
+        lastMessage: params.initialMessage || "Chat started",
+        lastMessageAt: new Date().toISOString(),
+        unreadCountStudent: 0,
+        unreadCountOwner: params.initialMessage ? 1 : 0,
+        createdAt: new Date().toISOString(),
+      };
+      global.mockConversations = [conv, ...(global.mockConversations || [])];
+
+      if (params.initialMessage) {
+        const msg: MockMessage = {
+          _id: "msg_" + Math.random().toString(36).substring(2, 9),
+          conversationId: conv._id,
+          senderId: params.studentId,
+          senderRole: "student",
+          content: params.initialMessage,
+          read: false,
+          createdAt: new Date().toISOString(),
+        };
+        global.mockMessages = [...(global.mockMessages || []), msg];
+      }
+    }
+    return conv;
+  },
+  getMessages: (conversationId: string) => {
+    return (global.mockMessages || []).filter(
+      (m) => m.conversationId === conversationId
+    );
+  },
+  sendMessage: (params: {
+    conversationId: string;
+    senderId: string;
+    senderRole: "student" | "owner";
+    content: string;
+  }) => {
+    const newMsg: MockMessage = {
+      _id: "msg_" + Math.random().toString(36).substring(2, 9),
+      conversationId: params.conversationId,
+      senderId: params.senderId,
+      senderRole: params.senderRole,
+      content: params.content,
+      read: false,
+      createdAt: new Date().toISOString(),
+    };
+    global.mockMessages = [...(global.mockMessages || []), newMsg];
+
+    // Update conversation last message
+    global.mockConversations = (global.mockConversations || []).map((c) => {
+      if (c._id === params.conversationId) {
+        return {
+          ...c,
+          lastMessage: params.content,
+          lastMessageAt: newMsg.createdAt,
+        };
+      }
+      return c;
+    });
+
+    return newMsg;
   },
 };

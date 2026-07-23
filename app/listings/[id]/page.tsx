@@ -159,20 +159,32 @@ export default function ListingDetailPage() {
       router.push("/sign-in");
       return;
     }
-    if (message.trim().length < 10) {
-      toast.error("Message must be at least 10 characters");
+    if (message.trim().length < 5) {
+      toast.error("Message must be at least 5 characters");
       return;
     }
     setSendingInquiry(true);
     try {
+      const convRes = await axios.post("/api/chat/conversations", {
+        listingId: id,
+        initialMessage: message.trim(),
+      });
+      
       await axios.post("/api/inquiries", {
         listingId: id,
         message: message.trim(),
       });
-      toast.success("Inquiry sent! The owner will respond soon.");
+
+      const convId = convRes.data?.conversation?._id;
+      toast.success("Message sent! Opening in-app chat...");
       setMessage("");
+      if (convId) {
+        router.push(`/chat?id=${convId}`);
+      } else {
+        router.push("/chat");
+      }
     } catch {
-      toast.error("Failed to send inquiry");
+      toast.error("Failed to send message");
     } finally {
       setSendingInquiry(false);
     }

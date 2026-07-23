@@ -35,11 +35,12 @@ export function Navbar() {
 
   const studentLinks = [
     { href: "/saved", label: "Saved PGs", icon: Heart },
-    { href: "/inquiries", label: "My Inquiries", icon: MessageSquare },
+    { href: "/chat", label: "Messages", icon: MessageSquare },
   ];
 
   const ownerLinks = [
     { href: "/dashboard", label: "Owner Dashboard", icon: LayoutDashboard },
+    { href: "/chat", label: "Messages", icon: MessageSquare },
   ];
 
   const isActive = (href: string) => {
