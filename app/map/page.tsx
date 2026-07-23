@@ -76,8 +76,30 @@ export default function MapPage() {
   }, []);
 
   useEffect(() => {
-    fetchListings();
-  }, []);
+    const listingId = searchParams.get("listing");
+    if (!listingId) {
+      fetchListings();
+      return;
+    }
+
+    async function openExactListing() {
+      setLoading(true);
+      try {
+        const response = await axios.get(`/api/listings/${listingId}`);
+        const listing: MapListing = response.data.listing;
+        const [longitude, latitude] = listing.location.coordinates;
+        setCenter([latitude, longitude]);
+        setZoom(18);
+        setListings([listing]);
+      } catch {
+        toast.error("Unable to open this listing on the map");
+        fetchListings();
+      } finally {
+        setLoading(false);
+      }
+    }
+    openExactListing();
+  }, [searchParams]);
 
   async function fetchListings(lat?: number, lng?: number) {
     setLoading(true);
