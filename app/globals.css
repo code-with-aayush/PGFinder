@@ -33,6 +33,7 @@
   }
   body {
     @apply bg-background text-foreground selection:bg-primary/20 selection:text-primary;
+    overflow-x: hidden;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
@@ -146,4 +147,14 @@ main {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius);
+}
+
+@media (max-width: 639px) {
+  button, input, select, textarea {
+    font-size: 16px;
+  }
+
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
 }

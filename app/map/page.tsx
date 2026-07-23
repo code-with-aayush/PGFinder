@@ -139,9 +139,9 @@ export default function MapPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
+    <div className="flex h-[calc(100dvh-4rem)] min-h-[560px] flex-col sm:h-[calc(100vh-4rem)]">
       {/* Controls */}
-      <div className="border-b bg-background p-4">
+      <div className="border-b bg-background px-0 py-3 sm:p-4">
         <div className="container flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -154,7 +154,7 @@ export default function MapPage() {
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium whitespace-nowrap">
                 Radius: {(radius / 1000).toFixed(0)} km

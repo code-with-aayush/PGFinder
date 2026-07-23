@@ -236,18 +236,18 @@ function ChatContent() {
   }
 
   return (
-    <div className="container py-6 max-w-7xl">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="container max-w-7xl px-3 py-3 sm:px-6 sm:py-6">
+      <div className="mb-3 flex items-center justify-between sm:mb-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-lg font-bold sm:text-2xl">
             <MessageSquare className="h-6 w-6 text-primary" />
             In-App Messages
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground sm:text-sm">
             Direct chat between Students & PG Owners ({conversations.length} active threads)
           </p>
         </div>
-        <Badge variant="outline" className="gap-1.5 px-3 py-1 bg-primary/5 text-primary border-primary/20">
+        <Badge variant="outline" className="hidden gap-1.5 border-primary/20 bg-primary/5 px-3 py-1 text-primary sm:flex">
           <Sparkles className="h-3.5 w-3.5" /> Real-time messaging
         </Badge>
       </div>
@@ -280,27 +280,27 @@ function ChatContent() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-[340px_1fr] h-[calc(100vh-10rem)] min-h-[500px]">
+        <div className="grid h-[calc(100dvh-8.5rem)] min-h-0 grid-rows-[9rem_minmax(0,1fr)] gap-3 md:h-[calc(100vh-10rem)] md:min-h-[500px] md:grid-cols-[340px_1fr] md:grid-rows-1 md:gap-4">
           {/* Left Sidebar: Conversations List */}
           <Card className="flex flex-col overflow-hidden border shadow-sm">
-            <div className="border-b bg-muted/40 p-3 font-semibold text-sm flex items-center justify-between">
+            <div className="flex items-center justify-between border-b bg-muted/40 p-2.5 text-sm font-semibold sm:p-3">
               <span>Conversations</span>
               <Badge variant="secondary" className="text-xs">
                 {conversations.length}
               </Badge>
             </div>
-            <div className="flex-1 overflow-y-auto divide-y">
+            <div className="flex-1 divide-y overflow-y-auto">
               {conversations.map((conv) => {
                 const isSelected = selectedConvId === conv._id;
                 return (
                   <button
                     key={conv._id}
                     onClick={() => handleSelectThread(conv._id)}
-                    className={`w-full p-3.5 text-left transition-colors flex items-start gap-3 hover:bg-muted/40 ${
+                    className={`flex w-full items-start gap-3 p-2.5 text-left transition-colors hover:bg-muted/40 sm:p-3.5 ${
                       isSelected ? "bg-primary/10 border-l-4 border-l-primary" : ""
                     }`}
                   >
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-primary/20 to-violet-500/20 text-primary font-bold">
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center sm:h-10 sm:w-10 rounded-xl bg-gradient-to-tr from-primary/20 to-violet-500/20 text-primary font-bold">
                       {conv.listingTitle ? conv.listingTitle.charAt(0) : "P"}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -329,16 +329,16 @@ function ChatContent() {
           {selectedConv ? (
             <Card className="flex flex-col overflow-hidden border shadow-sm">
               {/* Thread Header */}
-              <div className="border-b bg-muted/30 p-4 flex items-center justify-between">
-                <div>
+              <div className="flex items-center justify-between gap-2 border-b bg-muted/30 p-3 sm:p-4">
+                <div className="min-w-0">
                   <Link
                     href={`/listings/${selectedConv.listingId}`}
-                    className="font-bold text-base hover:text-primary transition-colors flex items-center gap-1.5"
+                    className="flex items-center gap-1.5 truncate text-sm font-bold transition-colors hover:text-primary sm:text-base"
                   >
                     {selectedConv.listingTitle}
                     <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                   </Link>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     Participant:{" "}
                     <span className="font-semibold text-foreground">
                       {isOwner
@@ -350,14 +350,14 @@ function ChatContent() {
                   </p>
                 </div>
                 <Link href={`/listings/${selectedConv.listingId}`}>
-                  <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                  <Button variant="outline" size="sm" className="hidden gap-1.5 text-xs sm:flex">
                     View PG
                   </Button>
                 </Link>
               </div>
 
               {/* Messages Area */}
-              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50 dark:bg-slate-950/50">
+              <div ref={messagesContainerRef} className="flex-1 space-y-3 overflow-y-auto overscroll-contain bg-slate-50/50 p-3 dark:bg-slate-950/50 sm:p-4">
                 {loadingMessages ? (
                   <div className="flex h-full items-center justify-center">
                     <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -381,7 +381,7 @@ function ChatContent() {
                         }`}
                       >
                         <div
-                          className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
+                          className={`max-w-[85%] break-words rounded-2xl px-3 py-2 text-sm shadow-sm sm:max-w-[80%] sm:px-4 sm:py-2.5 ${
                             isMe
                               ? "bg-primary text-primary-foreground rounded-br-none"
                               : "bg-background border text-foreground rounded-bl-none"
@@ -401,7 +401,7 @@ function ChatContent() {
               </div>
 
               {/* Chat Input Bar */}
-              <div className="border-t bg-background p-3">
+              <div className="border-t bg-background p-2 sm:p-3">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -419,13 +419,13 @@ function ChatContent() {
                         handleSendMessage();
                       }
                     }}
-                    className="flex-1 text-sm h-11"
+                    className="h-11 flex-1 text-base sm:text-sm"
                   />
                   <Button
                     type="submit"
                     disabled={sending || !inputMessage.trim()}
                     size="icon"
-                    className="h-11 w-11 flex-shrink-0 shadow-sm"
+                    className="h-11 w-11 flex-shrink-0 touch-manipulation shadow-sm"
                   >
                     {sending ? (
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -438,7 +438,7 @@ function ChatContent() {
             </Card>
           ) : (
             <Card className="flex items-center justify-center text-center p-8">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground sm:text-sm">
                 Select a conversation from the left panel to start messaging.
               </p>
             </Card>

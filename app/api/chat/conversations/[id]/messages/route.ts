@@ -17,6 +17,11 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     await connectToDatabase();
     const conversation = await getParticipantConversation(params.id, userId);
     if (!conversation) return NextResponse.json({ error: "Conversation not found or access is denied" }, { status: 404 });
+    const unreadField = conversation.ownerId === userId ? "unreadCountOwner" : "unreadCountStudent";
+    await Promise.all([
+      Message.updateMany({ conversationId: conversation._id, senderId: { $ne: userId }, read: false }, { $set: { read: true } }),
+      Conversation.updateOne({ _id: conversation._id }, { $set: { [unreadField]: 0 } }),
+    ]);
     const messages = await Message.find({ conversationId: conversation._id }).sort({ createdAt: 1, _id: 1 }).lean();
     return NextResponse.json({ messages });
   } catch (error) {
