@@ -135,10 +135,25 @@ const Saved = mongoose.models.Saved || mongoose.model("Saved", SavedSchema);
 const Conversation = mongoose.models.Conversation || mongoose.model("Conversation", ConversationSchema);
 const Message = mongoose.models.Message || mongoose.model("Message", MessageSchema);
 
-const OWNER_ID = "owner_spidertech1515";
+const OWNER_ID = null;
 const OWNER_EMAIL = "spidertech1515@gmail.com";
 const OWNER_PHONE = "9876543210";
 
+async function resolveOwner() {
+  const secret = process.env.CLERK_SECRET_KEY;
+  if (!secret) throw new Error("CLERK_SECRET_KEY is required to resolve the owner account");
+  const response = await fetch(`https://api.clerk.com/v1/users?email_address=${encodeURIComponent(OWNER_EMAIL)}`, { headers: { Authorization: `Bearer ${secret}` } });
+  if (!response.ok) throw new Error(`Clerk lookup failed: ${response.status}`);
+  const users = await response.json();
+  if (!Array.isArray(users) || users.length !== 1) throw new Error(`Expected exactly one Clerk user for ${OWNER_EMAIL}`);
+  const owner = users[0];
+  const metadataResponse = await fetch(`https://api.clerk.com/v1/users/${owner.id}/metadata`, {
+    method: "PATCH", headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ public_metadata: { ...(owner.public_metadata || {}), role: "owner" } }),
+  });
+  if (!metadataResponse.ok) throw new Error(`Unable to assign owner role in Clerk: ${metadataResponse.status}`);
+  return { id: owner.id, name: `${owner.first_name || ""} ${owner.last_name || ""}`.trim() || "PG Owner" };
+}
 const PHOTOS = [
   "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop",
   "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop",
@@ -397,6 +412,9 @@ async function seed() {
     await mongoose.connect(MONGODB_URI);
     console.log("✅ Connected to MongoDB");
 
+    // Verify the real Clerk owner before any destructive database action.
+    const owner = await resolveOwner();
+    const ownerId = owner.id;
     // Clear existing data
     console.log("🧹 Clearing all existing database collections...");
     await Promise.all([
@@ -408,22 +426,21 @@ async function seed() {
       Message.deleteMany({}),
     ]);
 
-    // Create test owner user
-    console.log("👤 Creating Test PG Owner User...");
-    const ownerUser = await User.create({
-      clerkId: OWNER_ID,
-      name: "Rajesh Sharma (PG Owner)",
+
+    console.log("Creating the real PG owner user...");
+    await User.create({
+      clerkId: ownerId,
+      name: owner.name,
       email: OWNER_EMAIL,
       role: "owner",
       phone: OWNER_PHONE,
     });
-
     // Create 20 listings
     console.log("🏠 Creating 20 fresh PG listings...");
     const createdListings = await Listing.create(
       listings.map((listing, idx) => ({
         ...listing,
-        ownerId: OWNER_ID,
+        ownerId: ownerId,
         ownerPhone: OWNER_PHONE,
         photos: [
           PHOTOS[idx % PHOTOS.length],
@@ -441,7 +458,7 @@ async function seed() {
     console.log(`   👤 1 Test Owner User Created`);
     console.log(`\n   🔑 TEST PG OWNER CREDENTIALS:`);
     console.log(`      • Email: ${OWNER_EMAIL}`);
-    console.log(`      • Owner ID: ${OWNER_ID}`);
+    console.log(`      • Owner ID: ${ownerId}`);
     console.log(`      • Phone: ${OWNER_PHONE}`);
     console.log(`\n   🎓 STUDENT ID:`);
     console.log(`      • Use your own personal login/sign-up account!`);
