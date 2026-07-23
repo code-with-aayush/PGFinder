@@ -41,7 +41,7 @@ export default function InquiriesPage() {
 
   async function fetchInquiries() {
     try {
-      const res = await axios.get("/api/inquiries");
+      const res = await axios.get("/api/inquiries?role=student");
       setInquiries(res.data.inquiries || []);
     } catch {
       toast.error("Failed to load inquiries");
@@ -66,9 +66,9 @@ export default function InquiriesPage() {
   return (
     <div className="container max-w-3xl py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">My Inquiries</h1>
+        <h1 className="text-3xl font-bold">My Sent Inquiries</h1>
         <p className="text-muted-foreground">
-          {inquiries.length} inquiry{inquiries.length !== 1 ? " messages" : ""} sent
+          Track messages and inquiries you have sent to PG property owners ({inquiries.length} total)
         </p>
       </div>
 

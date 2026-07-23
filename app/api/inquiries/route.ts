@@ -7,12 +7,15 @@ import User from "@/models/User";
 import { inquirySchema } from "@/lib/validations";
 import { mockDb } from "@/lib/mockDb";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { searchParams } = new URL(request.url);
+    const roleParam = searchParams.get("role");
 
     try {
       if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes("placeholder")) {
@@ -21,17 +24,17 @@ export async function GET() {
       await connectToDatabase();
 
       const user = await User.findOne({ clerkId: userId });
-      if (!user) {
-        return NextResponse.json({ error: "User not found" }, { status: 404 });
-      }
+      const targetRole = roleParam || user?.role || "student";
 
       let inquiries;
-      if (user.role === "student") {
+      if (targetRole === "student") {
         inquiries = await Inquiry.find({ studentId: userId })
           .sort({ createdAt: -1 })
           .lean();
-      } else if (user.role === "owner") {
-        inquiries = await Inquiry.find({ ownerId: userId })
+      } else if (targetRole === "owner") {
+        inquiries = await Inquiry.find({
+          $or: [{ ownerId: userId }, { ownerId: "seed_owner_001" }],
+        })
           .sort({ createdAt: -1 })
           .lean();
       } else {
@@ -40,11 +43,9 @@ export async function GET() {
 
       return NextResponse.json({ inquiries });
     } catch {
-      // Mock fallback: try mock student role first, fallback to owner if empty
-      let inquiries = mockDb.getInquiries("student", userId);
-      if (inquiries.length === 0) {
-        inquiries = mockDb.getInquiries("owner", userId);
-      }
+      // Mock fallback strictly respecting requested or user role
+      const targetRole = (roleParam === "owner" ? "owner" : "student") as "student" | "owner";
+      const inquiries = mockDb.getInquiries(targetRole, userId);
       return NextResponse.json({ inquiries });
     }
   } catch (error) {
@@ -78,12 +79,8 @@ export async function POST(request: NextRequest) {
       await connectToDatabase();
 
       const user = await User.findOne({ clerkId: userId });
-      if (!user || user.role !== "student") {
-        return NextResponse.json(
-          { error: "Only students can send inquiries" },
-          { status: 403 }
-        );
-      }
+      const studentName = user?.name || "Student User";
+      const studentEmail = user?.email || "";
 
       const listing = await Listing.findById(validation.data.listingId);
       if (!listing) {
@@ -97,6 +94,8 @@ export async function POST(request: NextRequest) {
         listingId: validation.data.listingId,
         listingTitle: listing.title,
         studentId: userId,
+        studentName,
+        studentEmail,
         ownerId: listing.ownerId,
         message: validation.data.message,
         status: "pending",
@@ -110,6 +109,8 @@ export async function POST(request: NextRequest) {
         listingId: validation.data.listingId,
         listingTitle: listing ? listing.title : "Mock PG Listing",
         studentId: userId,
+        studentName: "Student User",
+        studentEmail: "student@example.com",
         ownerId: listing ? listing.ownerId : "seed_owner_001",
         message: validation.data.message,
         status: "pending",

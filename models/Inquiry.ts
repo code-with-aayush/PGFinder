@@ -4,6 +4,8 @@ export interface IInquiry extends Document {
   listingId: mongoose.Types.ObjectId;
   listingTitle: string;
   studentId: string;
+  studentName?: string;
+  studentEmail?: string;
   ownerId: string;
   message: string;
   status: "pending" | "responded";
@@ -19,6 +21,8 @@ const InquirySchema = new Schema<IInquiry>(
     },
     listingTitle: { type: String, required: true },
     studentId: { type: String, required: true, index: true },
+    studentName: { type: String },
+    studentEmail: { type: String },
     ownerId: { type: String, required: true, index: true },
     message: { type: String, required: true, maxlength: 2000 },
     status: {

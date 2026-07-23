@@ -48,6 +48,8 @@ export interface MockInquiry {
   listingId: string;
   listingTitle: string;
   studentId: string;
+  studentName?: string;
+  studentEmail?: string;
   ownerId: string;
   message: string;
   status: "pending" | "responded";
@@ -298,10 +300,12 @@ export const mockDb = {
     return true;
   },
   getInquiries: (role: "student" | "owner", userId: string) => {
+    const inquiries = global.mockInquiries || [];
     if (role === "student") {
-      return (global.mockInquiries || []).filter((i) => i.studentId === userId);
+      return inquiries.filter((i) => i.studentId === userId);
     }
-    return (global.mockInquiries || []).filter((i) => i.ownerId === userId);
+    const ownerInquiries = inquiries.filter((i) => i.ownerId === userId || i.ownerId === "seed_owner_001");
+    return ownerInquiries;
   },
   createInquiry: (inquiry: Omit<MockInquiry, "_id" | "createdAt">) => {
     const newInquiry: MockInquiry = {

@@ -31,6 +31,8 @@ interface ListingWithId extends Omit<IListing, "_id" | keyof Document> {
 
 interface InquiryWithId extends Omit<IInquiry, "_id" | keyof Document> {
   _id: string;
+  studentName?: string;
+  studentEmail?: string;
 }
 
 export default function DashboardPage() {
@@ -56,7 +58,7 @@ export default function DashboardPage() {
       const listingsUrl = ownerId ? `/api/listings?ownerId=${ownerId}` : "/api/listings";
       const [listingsRes, inquiriesRes] = await Promise.all([
         axios.get(listingsUrl),
-        axios.get("/api/inquiries"),
+        axios.get("/api/inquiries?role=owner"),
       ]);
       setListings(listingsRes.data.listings || []);
       setInquiries(inquiriesRes.data.inquiries || []);
@@ -375,7 +377,10 @@ export default function DashboardPage() {
                         {inquiry.status}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded border">
+                    <div className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded inline-block w-fit border border-emerald-200">
+                      Inquirer: {inquiry.studentName || "Student User"} {inquiry.studentEmail ? `(${inquiry.studentEmail})` : ""}
+                    </div>
+                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded border mt-1">
                       &quot;{inquiry.message}&quot;
                     </p>
                     <p className="text-xs text-muted-foreground">
