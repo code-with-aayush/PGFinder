@@ -55,7 +55,7 @@ export default function DashboardPage() {
   async function fetchDashboardData() {
     try {
       const ownerId = user?.id;
-      const listingsUrl = ownerId ? `/api/listings?ownerId=${ownerId}` : "/api/listings";
+      const listingsUrl = ownerId ? `/api/listings?ownerId=${ownerId}&limit=100` : "/api/listings?limit=100";
       const [listingsRes, inquiriesRes] = await Promise.all([
         axios.get(listingsUrl),
         axios.get("/api/inquiries?role=owner"),
