@@ -180,9 +180,6 @@ function ChatContent() {
         if (prev.length === newMsgs.length && prevLastId === newLastId) {
           return prev;
         }
-
-        // New message arrived from other party -> scroll down!
-        setTimeout(scrollToBottom, 50);
         return newMsgs;
       });
     } catch {
@@ -215,7 +212,6 @@ function ChatContent() {
       if (res.data?.message) {
         const confirmedMsg: MessageItem = res.data.message;
         setMessages((prev) => prev.some((message) => message._id === confirmedMsg._id) ? prev : [...prev, confirmedMsg]);
-        setTimeout(scrollToBottom, 50);
       }
       fetchConversationsSilent();
     } catch {

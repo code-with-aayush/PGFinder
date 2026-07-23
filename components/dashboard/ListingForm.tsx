@@ -212,8 +212,9 @@ export default function ListingForm({ initialData, mode }: ListingFormProps) {
       }
       router.push("/dashboard");
       router.refresh();
-    } catch {
-      toast.error(`Failed to ${mode} listing. Please try again.`);
+    } catch (error) {
+      const apiError = axios.isAxiosError(error) ? error.response?.data?.error : null;
+      toast.error(apiError || `Failed to ${mode} listing. Please try again.`);
     } finally {
       setSubmitting(false);
     }
