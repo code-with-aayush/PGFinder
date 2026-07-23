@@ -7,16 +7,13 @@ import axios from "axios";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   MessageSquare,
   Send,
   Building2,
-  User,
-  ArrowLeft,
   Search,
-  Clock,
   Sparkles,
   ExternalLink,
 } from "lucide-react";
@@ -49,77 +46,93 @@ interface MessageItem {
 function ChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const activeConvId = searchParams.get("id");
-  const { user, role, isOwner, isStudent, isLoggedIn, loading: roleLoading } = useUserRole();
+  const initialConvId = searchParams.get("id");
+  const { user, isOwner, isLoggedIn, loading: roleLoading } = useUserRole();
 
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [selectedConvId, setSelectedConvId] = useState<string | null>(initialConvId);
   const [messages, setMessages] = useState<MessageItem[]>([]);
-  const [selectedConv, setSelectedConv] = useState<ConversationItem | null>(null);
+  const [optimisticMsgs, setOptimisticMsgs] = useState<MessageItem[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [loadingConvs, setLoadingConvs] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const activeConvIdRef = useRef<string | null>(selectedConvId);
+
+  // Derived selected conversation object from stable ID
+  const selectedConv = conversations.find((c) => c._id === selectedConvId) || null;
+
+  useEffect(() => {
+    activeConvIdRef.current = selectedConvId;
+  }, [selectedConvId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // 1. Initial auth check & fetch conversations
   useEffect(() => {
     if (!roleLoading) {
       if (!isLoggedIn) {
         router.push("/sign-in");
         return;
       }
-      fetchConversations();
+      fetchConversationsInitial();
     }
   }, [roleLoading, isLoggedIn]);
 
+  // 2. Sync selected conversation when initial target ID changes or conversations load
   useEffect(() => {
-    if (activeConvId && conversations.length > 0) {
-      const conv = conversations.find((c) => c._id === activeConvId);
-      if (conv) {
-        setSelectedConv(conv);
-      } else if (!selectedConv) {
-        setSelectedConv(conversations[0]);
+    if (conversations.length > 0) {
+      if (initialConvId && conversations.some((c) => c._id === initialConvId)) {
+        if (selectedConvId !== initialConvId) {
+          setSelectedConvId(initialConvId);
+        }
+      } else if (!selectedConvId) {
+        setSelectedConvId(conversations[0]._id);
       }
-    } else if (!activeConvId && conversations.length > 0 && !selectedConv) {
-      setSelectedConv(conversations[0]);
     }
-  }, [activeConvId, conversations]);
+  }, [initialConvId, conversations]);
 
+  // 3. Fetch messages whenever selected conversation ID changes
   useEffect(() => {
-    if (selectedConv) {
-      fetchMessages(selectedConv._id);
+    if (selectedConvId) {
+      fetchMessages(selectedConvId);
+    } else {
+      setMessages([]);
     }
-  }, [selectedConv?._id]);
+  }, [selectedConvId]);
 
-  // Zero-flicker background polling (every 5 seconds, only when tab is visible)
+  // 4. Background polling (paused when tab is hidden, no UI loading spinners)
   useEffect(() => {
-    if (!selectedConv) return;
+    if (!selectedConvId) return;
 
     const poll = () => {
       if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
-      fetchMessagesSilent(selectedConv._id);
+      if (activeConvIdRef.current) {
+        fetchMessagesSilent(activeConvIdRef.current);
+      }
       fetchConversationsSilent();
     };
 
-    const interval = setInterval(poll, 5000);
+    const interval = setInterval(poll, 4000);
     return () => clearInterval(interval);
-  }, [selectedConv?._id]);
+  }, [selectedConvId]);
 
-  async function fetchConversations() {
+  async function fetchConversationsInitial() {
     setLoadingConvs(true);
     try {
       const res = await axios.get("/api/chat/conversations");
-      const list = res.data.conversations || [];
+      const list: ConversationItem[] = res.data.conversations || [];
       setConversations(list);
-      if (list.length > 0 && !selectedConv) {
-        const initial = activeConvId
-          ? list.find((c: ConversationItem) => c._id === activeConvId) || list[0]
-          : list[0];
-        setSelectedConv(initial);
+
+      if (list.length > 0 && !selectedConvId) {
+        const targetId = initialConvId && list.some((c) => c._id === initialConvId)
+          ? initialConvId
+          : list[0]._id;
+        setSelectedConvId(targetId);
       }
     } catch {
       toast.error("Failed to load conversation history");
@@ -131,7 +144,7 @@ function ChatContent() {
   async function fetchConversationsSilent() {
     try {
       const res = await axios.get("/api/chat/conversations");
-      const newList = res.data.conversations || [];
+      const newList: ConversationItem[] = res.data.conversations || [];
       setConversations((prev) => {
         if (JSON.stringify(prev) === JSON.stringify(newList)) return prev;
         return newList;
@@ -143,9 +156,10 @@ function ChatContent() {
 
   async function fetchMessages(convId: string) {
     setLoadingMessages(true);
+    setOptimisticMsgs([]);
     try {
       const res = await axios.get(`/api/chat/conversations/${convId}/messages`);
-      const msgs = res.data.messages || [];
+      const msgs: MessageItem[] = res.data.messages || [];
       setMessages(msgs);
       setTimeout(scrollToBottom, 50);
     } catch {
@@ -159,13 +173,17 @@ function ChatContent() {
     try {
       const res = await axios.get(`/api/chat/conversations/${convId}/messages`);
       const newMsgs: MessageItem[] = res.data.messages || [];
+
       setMessages((prev) => {
-        if (
-          prev.length === newMsgs.length &&
-          prev[prev.length - 1]?._id === newMsgs[newMsgs.length - 1]?._id
-        ) {
-          return prev; // Same messages -> zero state change -> zero re-renders/scrolls!
+        // Deep compare last message ID to avoid unnecessary state mutations
+        const prevLastId = prev[prev.length - 1]?._id;
+        const newLastId = newMsgs[newMsgs.length - 1]?._id;
+
+        if (prev.length === newMsgs.length && prevLastId === newLastId) {
+          return prev;
         }
+
+        // New message arrived from other party -> scroll down!
         setTimeout(scrollToBottom, 50);
         return newMsgs;
       });
@@ -174,50 +192,65 @@ function ChatContent() {
     }
   }
 
+  const handleSelectThread = (convId: string) => {
+    setSelectedConvId(convId);
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", `/chat?id=${convId}`);
+    }
+  };
+
   async function handleSendMessage() {
-    if (!inputMessage.trim() || !selectedConv || !user) return;
+    if (!inputMessage.trim() || !selectedConvId || !user) return;
 
     const content = inputMessage.trim();
     setInputMessage("");
 
-    // Optimistic Message Append
+    const targetConvId = selectedConvId;
     const currentRole = isOwner ? "owner" : "student";
+    const tempId = "temp_" + Date.now();
+
     const tempMsg: MessageItem = {
-      _id: "temp_" + Date.now(),
-      conversationId: selectedConv._id,
+      _id: tempId,
+      conversationId: targetConvId,
       senderId: user.id,
       senderRole: currentRole,
       content,
       createdAt: new Date().toISOString(),
     };
 
-    setMessages((prev) => [...prev, tempMsg]);
+    setOptimisticMsgs((prev) => [...prev, tempMsg]);
     setTimeout(scrollToBottom, 50);
     setSending(true);
 
     try {
       const res = await axios.post(
-        `/api/chat/conversations/${selectedConv._id}/messages`,
+        `/api/chat/conversations/${targetConvId}/messages`,
         { content }
       );
+
       if (res.data?.message) {
-        setMessages((prev) =>
-          prev.map((m) => (m._id === tempMsg._id ? res.data.message : m))
-        );
+        const confirmedMsg: MessageItem = res.data.message;
+        setMessages((prev) => [...prev, confirmedMsg]);
       }
       fetchConversationsSilent();
     } catch {
       toast.error("Failed to send message");
-      setMessages((prev) => prev.filter((m) => m._id !== tempMsg._id));
     } finally {
+      setOptimisticMsgs((prev) => prev.filter((m) => m._id !== tempId));
       setSending(false);
     }
   }
 
+  // Combine loaded server messages with active optimistic messages
+  const allDisplayMessages = [
+    ...messages,
+    ...optimisticMsgs.filter((om) => om.conversationId === selectedConvId),
+  ];
+
   if (roleLoading || loadingConvs) {
     return (
-      <div className="container py-8">
-        <div className="grid gap-6 md:grid-cols-[320px_1fr] h-[calc(100vh-8rem)]">
+      <div className="container py-8 max-w-7xl">
+        <div className="grid gap-6 md:grid-cols-[340px_1fr] h-[calc(100vh-10rem)] min-h-[500px]">
           <div className="skeleton rounded-xl h-full" />
           <div className="skeleton rounded-xl h-full" />
         </div>
@@ -281,14 +314,11 @@ function ChatContent() {
             </div>
             <div className="flex-1 overflow-y-auto divide-y">
               {conversations.map((conv) => {
-                const isSelected = selectedConv?._id === conv._id;
+                const isSelected = selectedConvId === conv._id;
                 return (
                   <button
                     key={conv._id}
-                    onClick={() => {
-                      setSelectedConv(conv);
-                      router.push(`/chat?id=${conv._id}`);
-                    }}
+                    onClick={() => handleSelectThread(conv._id)}
                     className={`w-full p-3.5 text-left transition-colors flex items-start gap-3 hover:bg-muted/40 ${
                       isSelected ? "bg-primary/10 border-l-4 border-l-primary" : ""
                     }`}
@@ -355,7 +385,7 @@ function ChatContent() {
                   <div className="flex h-full items-center justify-center">
                     <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   </div>
-                ) : messages.length === 0 ? (
+                ) : allDisplayMessages.length === 0 ? (
                   <div className="flex h-full flex-col items-center justify-center text-center py-10">
                     <MessageSquare className="h-10 w-10 text-muted-foreground/30 mb-2" />
                     <p className="text-sm font-medium text-muted-foreground">
@@ -363,8 +393,9 @@ function ChatContent() {
                     </p>
                   </div>
                 ) : (
-                  messages.map((msg) => {
+                  allDisplayMessages.map((msg) => {
                     const isMe = msg.senderId === user?.id;
+                    const isTemp = msg._id.startsWith("temp_");
                     return (
                       <div
                         key={msg._id}
@@ -377,14 +408,14 @@ function ChatContent() {
                             isMe
                               ? "bg-primary text-primary-foreground rounded-br-none"
                               : "bg-background border text-foreground rounded-bl-none"
-                          }`}
+                          } ${isTemp ? "opacity-75" : ""}`}
                         >
                           <p className="whitespace-pre-wrap leading-relaxed">
                             {msg.content}
                           </p>
                         </div>
-                        <span className="text-[10px] text-muted-foreground mt-1 px-1">
-                          {getRelativeTime(msg.createdAt)}
+                        <span className="text-[10px] text-muted-foreground mt-1 px-1 flex items-center gap-1">
+                          {isTemp ? "Sending..." : getRelativeTime(msg.createdAt)}
                         </span>
                       </div>
                     );
