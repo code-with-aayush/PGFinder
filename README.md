@@ -7,17 +7,17 @@
 ## 🌟 Key Features
 
 ### 🎓 For Students
-- 🔍 **Advanced Multi-Filter Search:** Filter listings by city, budget slider, gender preference (Boys/Girls/Co-ed), room sharing type (Single/Double/Triple), and specific amenities (AC, Wi-Fi, Food, Gym, etc.).
-- 🗺️ **Interactive Leaflet Map View:** Geospatial property visualization with custom map markers, popup previews, and location-based discovery.
-- ⚖️ **Side-by-Side Comparison:** Compare up to 3 PG properties on key metrics (rent, deposit, food included, security, rules, distance).
-- ❤️ **Saved Favorites:** One-click bookmarking of properties for quick access and price tracking.
-- 💬 **Instant Inquiry & WhatsApp Connect:** Direct in-app lead messaging to property owners plus one-tap direct WhatsApp connection.
-- ⚡ **Real-Time Responsiveness:** Mobile-first, pixel-perfect UX with fast skeleton loader states.
+- 🔍 **Advanced Multi-Filter Search & Sort:** Filter listings by city, budget min/max inputs, gender preference (Boys/Girls/Co-ed), room sharing type (PG/Hostel/Flat Share), and specific amenities (AC, Wi-Fi, Meals, Laundry, Parking, Power Backup, Security). Sort by newest, price low-to-high, or price high-to-low.
+- 🗺️ **Interactive Leaflet Map View:** Geospatial property visualization with custom map markers, popup previews, radius distance querying, and location-based discovery.
+- ⚖️ **Side-by-Side Comparison:** Compare up to 3 saved PG properties on key metrics (rent, deposit, food included, security, rules, amenities).
+- ❤️ **Saved Favorites:** One-click bookmarking of properties with search state persistence for quick access.
+- 💬 **In-App Messaging & WhatsApp Connect:** Direct student-owner chat messaging inbox with unread indicators plus one-tap direct WhatsApp connection.
+- ⚡ **Real-Time Responsiveness:** Mobile-first, pixel-perfect UX with fast shimmer skeleton loader states.
 
 ### 🏢 For PG Owners
-- 📊 **Owner Management Dashboard:** Centralized panel to monitor total listings, active inquiries, saved bookmarks count, and listing status.
-- 📝 **Comprehensive Property CRUD:** Create, update, and manage PG listings with multi-photo uploading via Cloudinary integration.
-- 📬 **Inquiry Tracker:** Manage student leads with status tracking (`Pending`, `Contacted`, `Closed`) and direct contact actions.
+- 📊 **Owner Management Dashboard:** Centralized panel to monitor total accommodations, active listings status, and direct inbox navigation.
+- 📝 **5-Step Property Creator Wizard:** Multi-step form with address search, browser current location detector, map pin placement, and photo uploads.
+- 📬 **In-App Chat Lead Inbox:** Receive student inquiries and converse directly with prospective student tenants.
 - 🛡️ **Verification Status:** Verified badges for listings that pass safety and quality standard checks.
 
 ---
@@ -26,9 +26,9 @@
 
 - **Framework:** Next.js 14 (App Router, Server & Client Components)
 - **Language:** TypeScript (Strict Mode)
-- **Database & ORM:** MongoDB Atlas with Mongoose Schemas & Aggregation Pipelines
+- **Database & ORM:** MongoDB Atlas with Mongoose Schemas & Geospatial Indexing (`2dsphere`)
 - **Authentication & Authorization:** Clerk (Role-based metadata: `student` | `owner`)
-- **Media Storage:** Cloudinary (Unsigned Image Upload Preset)
+- **Media Storage:** Cloudinary (Server-side Signed Image Uploads)
 - **Maps & Geocoding:** Leaflet.js, React-Leaflet & OpenStreetMap
 - **Styling:** Tailwind CSS + Radix UI Primitives + Lucide Icons + Sonner Toasts
 - **Form Management:** React Hook Form + Zod Schema Validation

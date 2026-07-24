@@ -103,7 +103,6 @@ export async function POST(request: NextRequest) {
         studentEmail,
         ownerId: listing.ownerId,
         message: validation.data.message,
-        status: "pending",
       });
 
       return NextResponse.json({ inquiry }, { status: 201 });

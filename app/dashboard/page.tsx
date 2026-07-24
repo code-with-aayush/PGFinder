@@ -124,7 +124,6 @@ export default function DashboardPage() {
   }
 
   const activeListings = listings.filter((l) => l.isActive).length;
-  const pendingInquiries = inquiries.filter((i) => i.status === "pending").length;
 
   return (
     <div className="container py-8 space-y-8">
@@ -176,30 +175,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-3xl font-bold">{inquiries.length}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              <span className="font-semibold text-amber-600">{pendingInquiries} pending</span> response
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-emerald-500 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Response Rate
-            </CardTitle>
-            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {inquiries.length > 0
-                ? Math.round(
-                    ((inquiries.length - pendingInquiries) / inquiries.length) *
-                      100
-                  )
-                : 100}
-              %
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              High response rates attract more students
+              Student contacts
             </p>
           </CardContent>
         </Card>

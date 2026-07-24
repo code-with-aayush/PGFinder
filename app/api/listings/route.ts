@@ -27,12 +27,18 @@ export async function GET(request: NextRequest) {
     if (type && ["PG", "Hostel", "Flat Share"].includes(type)) query.type = type;
     for (const amenity of ["ac", "wifi", "meals"] as const) if (searchParams.get(amenity) === "true") query[`amenities.${amenity}`] = true;
     if (searchParams.get("veg") === "true") query["rules.vegOnly"] = true;
-    if (searchParams.get("verified") === "true") query.isVerified = true;
+    if (searchParams.get("verified") === "true") query.isVerified = true;    const lat = Number(searchParams.get("lat"));
+    const lng = Number(searchParams.get("lng"));
+    const radius = Math.min(50000, Math.max(500, Number(searchParams.get("radius") || 5000)));
+    const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0;
+    if (hasCoordinates) {
+      query.location = { $nearSphere: { $geometry: { type: "Point", coordinates: [lng, lat] }, $maxDistance: radius } };
+    }
     const minPrice = searchParams.get("minPrice"); const maxPrice = searchParams.get("maxPrice");
     if (minPrice || maxPrice) query.price = { ...(minPrice ? { $gte: Number(minPrice) } : {}), ...(maxPrice ? { $lte: Number(maxPrice) } : {}) };
 
     await connectToDatabase();
-    const sortQuery: Record<string, 1 | -1> = sort === "price_asc" ? { price: 1 } : sort === "price_desc" ? { price: -1 } : { createdAt: -1 };
+    const sortQuery: Record<string, 1 | -1> = hasCoordinates ? {} : sort === "price_asc" ? { price: 1 } : sort === "price_desc" ? { price: -1 } : { createdAt: -1 };
     const [listings, total] = await Promise.all([Listing.find(query).sort(sortQuery).skip((page - 1) * limit).limit(limit).lean(), Listing.countDocuments(query)]);
     return NextResponse.json({ listings, pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasMore: page * limit < total } });
   } catch (error) {

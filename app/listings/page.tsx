@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
+import { toast } from "sonner";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { FilterSidebar } from "@/components/listings/FilterSidebar";
 import { GridListingSkeleton } from "@/components/ui/skeleton-card";
@@ -45,6 +46,7 @@ function ListingsContent() {
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState(searchParams.get("sort") || "newest");
+  const [compareIds, setCompareIds] = useState<string[]>([]);
 
   useEffect(() => {
     fetchListings();
@@ -66,6 +68,17 @@ function ListingsContent() {
     }
   }
 
+  function toggleCompare(id: string) {
+    setCompareIds((current) => {
+      if (current.includes(id)) return current.filter((item) => item !== id);
+      if (current.length >= 3) { toast.error("You can compare up to 3 PGs"); return current; }
+      return [...current, id];
+    });
+  }
+
+  function openComparison() {
+    router.push(`/compare?${compareIds.map((id) => `id=${id}`).join("&")}`);
+  }
   const currentPage = parseInt(searchParams.get("page") || "1", 10);
 
   function goToPage(page: number) {
@@ -134,7 +147,7 @@ function ListingsContent() {
             <>
               <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 {listings.map((listing) => (
-                  <ListingCard key={listing._id} listing={listing} />
+                  <ListingCard key={listing._id} listing={listing} showSelectCheckbox isSelected={compareIds.includes(listing._id)} onSelect={toggleCompare} />
                 ))}
               </div>
 
