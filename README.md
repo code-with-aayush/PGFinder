@@ -9,7 +9,6 @@
 ### 🎓 For Students
 - 🔍 **Advanced Multi-Filter Search & Sort:** Filter listings by city, budget min/max inputs, gender preference (Boys/Girls/Co-ed), room sharing type (PG/Hostel/Flat Share), and specific amenities (AC, Wi-Fi, Meals, Laundry, Parking, Power Backup, Security). Sort by newest, price low-to-high, or price high-to-low.
 - 🗺️ **Interactive Leaflet Map View:** Geospatial property visualization with custom map markers, popup previews, radius distance querying, and location-based discovery.
-- ⚖️ **Side-by-Side Comparison:** Compare up to 3 saved PG properties on key metrics (rent, deposit, food included, security, rules, amenities).
 - ❤️ **Saved Favorites:** One-click bookmarking of properties with search state persistence for quick access.
 - 💬 **In-App Messaging & WhatsApp Connect:** Direct student-owner chat messaging inbox with unread indicators plus one-tap direct WhatsApp connection.
 - ⚡ **Real-Time Responsiveness:** Mobile-first, pixel-perfect UX with fast shimmer skeleton loader states.
