@@ -137,3 +137,16 @@ This script will:
 | Images not uploading | Check all 3 Cloudinary values in `.env.local` |
 | Map not loading | This is normal on first load — Leaflet takes a moment to initialize |
 
+
+## TO Reset & Clean Up data from the database 
+
+### Clear All Data (Start Fresh)
+```bash
+node scripts/cleanup.js
+```
+This removes all documents from every MongoDB collection.
+### Re-Seed After Cleanup
+```bash
+node scripts/seed.js
+```
+---
