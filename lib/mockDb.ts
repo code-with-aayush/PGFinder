@@ -97,8 +97,8 @@ const PHOTOS = [
   "https://images.unsplash.com/photo-1540518614846-7eded433c457?w=800&h=600&fit=crop",
 ];
 
-const TEST_OWNER_ID = "owner_spidertech1515";
-const TEST_OWNER_EMAIL = "spidertech1515@gmail.com";
+const TEST_OWNER_ID = "seed_owner_001";
+const TEST_OWNER_EMAIL = "";
 const TEST_OWNER_PHONE = "9876543210";
 
 // Initialize mock data globally to persist changes in dev reload
@@ -576,8 +576,7 @@ export const mockDb = {
     return inquiries.filter(
       (i) =>
         i.ownerId === userId ||
-        (userEmail === "spidertech1515@gmail.com" &&
-          (i.ownerId === TEST_OWNER_ID || i.ownerId === "test_owner_001"))
+        (i.ownerId === TEST_OWNER_ID || i.ownerId === "test_owner_001")
     );
   },
   createInquiry: (inquiry: Omit<MockInquiry, "_id" | "createdAt">) => {
@@ -600,8 +599,7 @@ export const mockDb = {
       (c) =>
         c.studentId === userId ||
         c.ownerId === userId ||
-        (userEmail === "spidertech1515@gmail.com" &&
-          (c.ownerId === TEST_OWNER_ID || c.ownerId === "test_owner_001"))
+        (c.ownerId === TEST_OWNER_ID || c.ownerId === "test_owner_001")
     );
   },
   getOrCreateConversation: (params: {

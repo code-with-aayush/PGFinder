@@ -68,7 +68,7 @@ PGFinder/
 ### 2. Installation
 
 ```bash
-git clone https://github.com/code-with-aayush/PGFinder.git
+git clone <your-repository-url>
 cd PGFinder
 npm install
 ```
@@ -104,6 +104,10 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 To seed your MongoDB database with sample PG listings across major student hubs:
 
 ```bash
+# First add these to your .env.local:
+# SEED_OWNER_EMAIL=your-email@example.com  (use the email you signed up with on Clerk)
+# SEED_OWNER_PHONE=9876543210             (your 10-digit phone number)
+
 node scripts/seed.js
 ```
 
@@ -121,7 +125,7 @@ Navigate to `http://localhost:3000` to view the app in action.
 
 This repository is optimized for one-click deployment on **Vercel**:
 
-1. Push code to your GitHub repository: `https://github.com/code-with-aayush/PGFinder.git`
+1. Push code to your GitHub repository.
 2. Import the project into your Vercel Dashboard.
 3. Configure the environment variables in Vercel project settings (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `MONGODB_URI`, `CLOUDINARY` keys, etc.).
 4. Click **Deploy**. Vercel will automatically build and publish your Next.js app.
@@ -136,8 +140,4 @@ This repository is optimized for one-click deployment on **Vercel**:
 - Role-based middleware ensures access control for protected routes (`/dashboard`, `/onboarding`).
 
 ---
-
-## 📜 License
-
-Distributed under the MIT License. See `LICENSE` for more information.
 

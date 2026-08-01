@@ -35,11 +35,7 @@ export async function GET(request: NextRequest) {
           .sort({ createdAt: -1 })
           .lean();
       } else if (targetRole === "owner") {
-        const ownerIds = [userId];
-        if (userEmail === "spidertech1515@gmail.com") {
-          ownerIds.push("owner_spidertech1515", "test_owner_001");
-        }
-        inquiries = await Inquiry.find({ ownerId: { $in: ownerIds } })
+        inquiries = await Inquiry.find({ ownerId: userId })
           .sort({ createdAt: -1 })
           .lean();
       } else {

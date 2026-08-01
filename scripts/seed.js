@@ -136,8 +136,16 @@ const Conversation = mongoose.models.Conversation || mongoose.model("Conversatio
 const Message = mongoose.models.Message || mongoose.model("Message", MessageSchema);
 
 const OWNER_ID = null;
-const OWNER_EMAIL = "spidertech1515@gmail.com";
-const OWNER_PHONE = "9876543210";
+const OWNER_EMAIL = process.env.SEED_OWNER_EMAIL;
+const OWNER_PHONE = process.env.SEED_OWNER_PHONE || "9876543210";
+
+if (!OWNER_EMAIL) {
+  console.error("❌ SEED_OWNER_EMAIL not found in .env.local");
+  console.error("   Add this line to your .env.local file:");
+  console.error("   SEED_OWNER_EMAIL=your-email@example.com");
+  console.error("   (Use the same email you signed up with on Clerk)");
+  process.exit(1);
+}
 
 async function resolveOwner() {
   const secret = process.env.CLERK_SECRET_KEY;
